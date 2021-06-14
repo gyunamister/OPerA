@@ -29,7 +29,7 @@ venv.bak/
 *.csv
 *.pickle
 *.zip
-*.png
+# *.png
 *.json
 *.jsonocel
 
