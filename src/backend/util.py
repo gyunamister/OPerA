@@ -318,3 +318,13 @@ def transform_to_guards(records):
     for r in records:
         guards.update({r[TRANSITION]: r[GUARD]})
     return guards
+
+
+def transform_config_to_datatable_dict(config):
+    datatable_dict = []
+    for valve in config:
+        temp_dict = {}
+        temp_dict['valve'] = valve
+        temp_dict['value'] = config[valve]
+        datatable_dict.append(temp_dict)
+    return datatable_dict

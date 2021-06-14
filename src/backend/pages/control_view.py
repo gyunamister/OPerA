@@ -13,13 +13,15 @@ import pandas as pd
 import dash_table
 import dash
 from collections import OrderedDict
-from backend.param.constants import CVIEW_TITLE, GLOBAL_FORM_SIGNAL, CORR_TITLE, CVIEW_URL, HOME_TITLE, DVIEW_TITLE, JSON
+from backend.param.constants import CVIEW_TITLE, CVIEW_URL, PARSE_TITLE, JSON, GLOBAL_FORM_SIGNAL
 
 from dtwin.digitaltwin.digitaltwin.visualization import visualizer as dt_vis_factory
 from dtwin.digitaltwin.digitaltwin.util import guards_to_df, df_to_gaurds
 from backend.util import add_job, run_task, forget_all_tasks, get_job_id, check_existing_job, read_global_signal_value, read_active_attribute_form, transform_to_guards, write_global_signal_value, no_update, parse_contents
-from backend.tasks.tasks import get_remote_data, build_digitaltwin
+from backend.tasks.tasks import get_remote_data, build_digitaltwin, store_redis_backend
 from dtwin.available.available import AvailableTasks
+from dtwin.parsedata.objects.ocdata import ObjectCentricData
+from dtwin.digitaltwin.ocel.objects.ocel.converter import factory as ocel_converter_factory
 
 from flask import request
 
@@ -28,7 +30,7 @@ upload_guard_title = "Upload Guards"
 upload_valve_title = "Upload Valves"
 
 apply_guard_title = "Apply Guards"
-apply_configuration_title = "Apply Configuration"
+apply_configuration_title = "Set default configuration"
 define_action_title = "Define Action"
 
 
@@ -41,6 +43,42 @@ buttons = dbc.Row(
         dbc.Col(dcc.Upload(id="upload-valve",
                 children=button(upload_valve_title, show_title_maker, show_button_id)), width="auto"),
     ], justify='start'
+)
+
+guards_form = dbc.FormGroup(
+    [
+        dbc.Label("Guards"),
+        dash_table.DataTable(
+            id='guard-table',
+            columns=[
+                {'id': 'transition', 'name': 'transition'},
+                {'id': 'guard', 'name': 'guard',
+                 'presentation': 'dropdown'},
+            ],
+            editable=True
+        ),
+        button(apply_guard_title,
+               show_title_maker, show_button_id),
+        dbc.FormText(
+            "Click here if you want to apply the current guards to the digital twin",
+            color="secondary",
+        ),
+    ]
+)
+
+valves_form = dbc.FormGroup(
+    [
+        dbc.Label("Valves"),
+        dcc.Dropdown(id='valve-dropdown'),
+        dcc.Slider(id='valve-slider'),
+        html.Div(id='current-valve-value'),
+        dbc.FormText(id='current-valve-value'),
+        dcc.Input(id="action-specification", type="text",
+                  placeholder="Enter Action name"),
+        html.Br(),
+        button(define_action_title,
+               show_title_maker, show_button_id)
+    ]
 )
 
 control_view_content = dbc.Row(
@@ -61,53 +99,55 @@ control_view_content = dbc.Row(
         ),
         dbc.Col(
             [
-                dbc.Row(
-                    dbc.Col(html.H3("Guards"))
-                ),
-                dbc.Row(
-                    dbc.Col(dash_table.DataTable(
-                        id='guard-table',
-                        columns=[
-                            {'id': 'transition', 'name': 'transition'},
-                            {'id': 'guard', 'name': 'guard',
-                             'presentation': 'dropdown'},
-                        ],
-                        editable=True
-                    ))
-                ),
-                dbc.Row(
-                    dbc.Col(button(apply_guard_title,
-                                   show_title_maker, show_button_id))
-                ),
-                html.Hr(),
-                dbc.Row(
-                    dbc.Col(html.H3("Valves"))
-                ),
                 # dbc.Row(
-                #     dbc.Col(button(apply_configuration_title,
-                #                    show_title_maker, show_button_id)),
+                #     dbc.Col(html.H3("Guards"))
                 # ),
-                dbc.Row(
-                    dbc.Col(dcc.Dropdown(id='valve-dropdown'))
-                ),
-                dbc.Row(
-                    dbc.Col((dcc.Slider(id='valve-slider'))
-                            ),
-                ),
-                dbc.Row(
-                    dbc.Col(html.Div(id='current-valve-value')
-                            ),
-                ),
-                dbc.Row(
-                    dbc.Col(dcc.Input(id="action-specification", type="text",
-                                      placeholder="Enter Action name"))
-                ),
-                dbc.Row(
-                    [
-                        dbc.Col(button(define_action_title,
-                                       show_title_maker, show_button_id))
-                    ]
-                ),
+                # dbc.Row(
+                #     dbc.Col(dash_table.DataTable(
+                #         id='guard-table',
+                #         columns=[
+                #             {'id': 'transition', 'name': 'transition'},
+                #             {'id': 'guard', 'name': 'guard',
+                #              'presentation': 'dropdown'},
+                #         ],
+                #         editable=True
+                #     ))
+                # ),
+                # dbc.Row(
+                #     dbc.Col(button(apply_guard_title,
+                #                    show_title_maker, show_button_id))
+                # ),
+                guards_form,
+                html.Hr(),
+                valves_form
+                # dbc.Row(
+                #     dbc.Col(html.H3("Valves"))
+                # ),
+                # # dbc.Row(
+                # #     dbc.Col(button(apply_configuration_title,
+                # #                    show_title_maker, show_button_id)),
+                # # ),
+                # dbc.Row(
+                #     dbc.Col(dcc.Dropdown(id='valve-dropdown'))
+                # ),
+                # dbc.Row(
+                #     dbc.Col((dcc.Slider(id='valve-slider'))
+                #             ),
+                # ),
+                # dbc.Row(
+                #     dbc.Col(html.Div(id='current-valve-value')
+                #             ),
+                # ),
+                # dbc.Row(
+                #     dbc.Col(dcc.Input(id="action-specification", type="text",
+                #                       placeholder="Enter Action name"))
+                # ),
+                # dbc.Row(
+                #     [
+                #         dbc.Col(button(define_action_title,
+                #                        show_title_maker, show_button_id))
+                #     ]
+                # ),
             ],
             width=4
         ),
@@ -187,7 +227,6 @@ def show_selected(value):
 #         print(data)
 
 @ app.callback(
-    Output(global_signal_id_maker(CVIEW_TITLE), 'children'),
     Output(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
     Output('ocpn-dot', 'data'),
     Input(show_button_id(discover_title), 'n_clicks'),
@@ -195,32 +234,37 @@ def show_selected(value):
     # Input(show_button_id(apply_configuration_title), 'n_clicks'),
     State('guard-table', 'data'),
     State('valve-store', 'data'),
-    State(global_signal_id_maker(HOME_TITLE), 'children'),
-    State('jobs-store', 'data'),
+    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
+    State(global_signal_id_maker(PARSE_TITLE), 'children'),
+    # State('jobs-store', 'data'),
+    State(temp_jobs_store_id_maker(PARSE_TITLE), 'data'),
     State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
     prevent_initial_call=True
 )
-def run_build_digitaltwin(n_discover, n_guard, guards, valves, value, data_jobs, temp_jobs):
+def run_build_digitaltwin(n_discover, n_guard, guards, valves, value, old_value, data_jobs, temp_jobs):
     ctx = dash.callback_context
     if not ctx.triggered:
         button_id = 'No clicks yet'
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
         button_value = ctx.triggered[0]['value']
+        if value is None:
+            value = old_value
 
     if button_value is not None:
         if button_id == show_button_id(discover_title):
             log_hash, date = read_global_signal_value(value)
             user = request.authorization['username']
-            df = get_remote_data(user, log_hash, data_jobs,
-                                 AvailableTasks.UPLOAD.value)
+            data = get_remote_data(user, log_hash, data_jobs,
+                                   AvailableTasks.PARSE.value)
+            eve_df, obj_df = ocel_converter_factory.apply(data)
             task_id = run_task(
-                data_jobs, log_hash, AvailableTasks.BUILD.value, build_digitaltwin, temp_jobs=temp_jobs, data=df)
+                data_jobs, log_hash, AvailableTasks.BUILD.value, build_digitaltwin, temp_jobs=temp_jobs, data=eve_df)
             dt = get_remote_data(user, log_hash, data_jobs,
                                  AvailableTasks.BUILD.value)
             gviz = dt_vis_factory.apply(dt, parameters={"format": "svg"})
             dt_dot = str(gviz)
-            return write_global_signal_value([log_hash, task_id]), data_jobs, dt_dot
+            return data_jobs, dt_dot
         elif button_id == show_button_id(apply_guard_title):
             log_hash, date = read_global_signal_value(value)
             user = request.authorization['username']
@@ -228,9 +272,12 @@ def run_build_digitaltwin(n_discover, n_guard, guards, valves, value, data_jobs,
             dt = get_remote_data(user, log_hash, temp_jobs,
                                  AvailableTasks.BUILD.value)
             dt.guards = guards
+            task_id = run_task(
+                temp_jobs, log_hash, AvailableTasks.BUILD.value, store_redis_backend, data=dt)
             gviz = dt_vis_factory.apply(dt, parameters={"format": "svg"})
+            print(gviz)
             dt_dot = str(gviz)
-            return dash.no_update, temp_jobs, dt_dot
+            return temp_jobs, dt_dot
         # elif button_id == show_button_id(apply_configuration_title):
         #     log_hash, date = read_global_signal_value(value)
         #     user = request.authorization['username']
@@ -238,11 +285,16 @@ def run_build_digitaltwin(n_discover, n_guard, guards, valves, value, data_jobs,
         #                          AvailableTasks.BUILD.value)
         #     config = {}
         #     for name, spec in valves.items():
-        #         config[name] = spec['cur']
+        #         config[name] = spec['default']
         #     dt.config = config
+        #     task_id = run_task(
+        #         temp_jobs, log_hash, AvailableTasks.BUILD.value, store_redis_backend, data=dt)
+        #     dt2 = get_remote_data(user, log_hash, temp_jobs,
+        #                           AvailableTasks.BUILD.value)
+        #     print(dt2.config)
         #     gviz = dt_vis_factory.apply(dt, parameters={"format": "svg"})
         #     dt_dot = str(gviz)
-        #     return dash.no_update, temp_jobs, dt_dot
+        #     return temp_jobs, dt_dot
 
     # df = mdl_importer.apply(
     #     "/Users/gyunam/Documents/DigitalTwin/example_logs/mdl/order_management.mdl")
@@ -258,7 +310,7 @@ def run_build_digitaltwin(n_discover, n_guard, guards, valves, value, data_jobs,
     #                    data_type=CSV,
     #                    resource=res,
     #                    location=loc)
-    return no_update(3)
+    return no_update(2)
 
 
 @ app.callback(
@@ -329,7 +381,7 @@ def update_valves(selected, valves):
     if selected is not None:
         r_min = valves[selected]['r_min']
         r_max = valves[selected]['r_max']
-        cur = valves[selected]['cur']
+        cur = valves[selected]['default']
         marks = {
             r_min: {'label': 'Min: {}'.format(r_min), 'style': {'color': '#77b0b1'}},
             r_max: {'label': 'Max: {}'.format(r_max), 'style': {
@@ -375,8 +427,10 @@ def update_valve(valves):
 )
 def update_output(n, value, valve_name, action_name, action_repo):
     if n is not None:
+        expression = "Configure {} to {}".format(
+            valve_name, value)
         action_repo.append(
-            {'Name': action_name, 'Valve': valve_name, "Value": value})
+            {'Name': action_name, 'Valve': valve_name, "Value": value, "Expression": expression})
         print(action_repo)
         return True, action_repo
     else:

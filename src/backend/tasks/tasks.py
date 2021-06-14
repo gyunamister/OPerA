@@ -101,16 +101,17 @@ def build_digitaltwin(self, data):
 
 @celery.task(bind=True, serializer='pickle')
 def generate_diagnostics(self, ocpn, data, start_date=None, end_date=None):
-    df = mdl_import_factory.apply(data)
+    # df = mdl_import_factory.apply(data)
     if start_date != "" and end_date != "":
-        # +1 day to consider the selected end date
-        start_date = parser.parse(start_date).date()
-        end_date = parser.parse(end_date).date()
-        end_date += datetime.timedelta(days=1)
-        df = df.loc[(df["event_timestamp"] > pd.Timestamp(start_date))
-                    & (df["event_timestamp"] < pd.Timestamp(end_date))]
+        print(start_date)
+        print(end_date)
+        # start_date = parser.parse(start_date).date()
+        # end_date = parser.parse(end_date).date()
+        # end_date += datetime.timedelta(days=1)
+        data = data.loc[(data["event_timestamp"] > pd.Timestamp(start_date))
+                        & (data["event_timestamp"] < pd.Timestamp(end_date))]
         print("Events are filtered: {} - {}".format(start_date, end_date))
-    diagnostics = diagnostics_factory.apply(ocpn, df)
+    diagnostics = diagnostics_factory.apply(ocpn, data)
     print("Diagnostics generated: {}".format(diagnostics))
     store_redis(diagnostics, self.request)
 

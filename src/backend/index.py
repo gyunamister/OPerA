@@ -37,7 +37,11 @@ app.layout = html.Div([
     dcc.Store(id='last-job', storage_type='session'),
     dcc.Store(id='jobs-store', storage_type='session', data=DEFAULT_JOBS),
     dcc.Store(id='action-repository', storage_type='session', data=[]),
-    dcc.Store(id='condition-repository', storage_type='session', data=[])
+    dcc.Store(id='condition-repository', storage_type='session', data=[]),
+    dcc.Store(id='action-pattern-repository',
+              storage_type='session', data=[]),
+    dcc.Interval(id='interval-component', disabled=True,
+                 interval=24*1000, n_intervals=0),
 ] + [
     dcc.Store(id=temp_jobs_store_id_maker(title),
               storage_type='session', data=DEFAULT_JOBS)
@@ -78,10 +82,6 @@ app.layout = html.Div([
 def display_page(pathname):
     if pathname == ABOUT_URL:
         return about_layout
-    elif pathname == CORR_URL:
-        return correlate_layout
-    elif pathname == CORR_OUT_URL:
-        return correlateout_layout
     elif pathname == CVIEW_URL:
         return controlview_layout
     elif pathname == DVIEW_URL:
@@ -151,8 +151,8 @@ if __name__ == '__main__':
     if localhost_or_docker == 'localhost':
         app.run_server(
             debug=debug,
-            port=8057,
-            dev_tools_hot_reload=True, use_reloader=False
+            port=8050,
+            dev_tools_hot_reload=False, use_reloader=False
         )
     else:
         app.run_server(

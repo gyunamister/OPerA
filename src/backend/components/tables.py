@@ -18,7 +18,7 @@ from backend.components.misc import inspect_trace_button, log_header, use_log_bu
     interpretation_trace_button
 from backend.param.available import extract_title, get_available_from_name
 from backend.param.colors import SECONDARY_VERY_LIGHT, SECONDARY, INTRINSIC_COLOR_LIGHT, INTRINSIC_COLOR_VERY_LIGHT, \
-    NORMAL_COLOR_VERY_LIGHT, NORMAL_COLOR_LIGHT
+    NORMAL_COLOR_VERY_LIGHT, NORMAL_COLOR_LIGHT, PRIMARY, PRIMARY_VERY_LIGHT
 from backend.param.constants import RESULT_TITLE, TOP_KEY, DP, SUMMARY_KEY, NA, CONTEXT_KEY
 from backend.param.styles import act_style, TABLE_ROW_STYLE, HTML_TABLE_CELL_STYLE, NO_DISPLAY
 from backend.util import write_global_signal_value, display_time
@@ -170,7 +170,7 @@ def get_background_color(label):
     return NORMAL_COLOR_LIGHT
 
 
-def create_data_table(date, df, name, rows, header_color=SECONDARY, header_weight='bold', minWidth='180px',
+def create_data_table(date, df, name, rows, header_color=PRIMARY, header_weight='bold', minWidth='180px',
                       maxWidth='180px',
                       width='180px'):
     if name is not None:
@@ -211,13 +211,13 @@ def create_data_table(date, df, name, rows, header_color=SECONDARY, header_weigh
             style_data_conditional=[
                 {
                     'if': {'row_index': 'odd'},
-                    'backgroundColor': SECONDARY_VERY_LIGHT
+                    'backgroundColor': PRIMARY_VERY_LIGHT
                 }
             ],
             style_header={
                 'backgroundColor': header_color,
                 'fontWeight': header_weight,
-                'color': 'white' if header_color == SECONDARY else 'black'
+                'color': 'white' if header_color == PRIMARY else 'black'
             }
         ),
     ])
@@ -238,13 +238,13 @@ def create_oc_data_dfs(oc_data):
     if len(meta.ress) > 0:
         df_res = pd.DataFrame(columns=list(meta.ress))
         res_out = [html.H3('Resources'),
-                   create_data_table(None, df_res, None, len(df_res), SECONDARY_VERY_LIGHT, 'medium')]
+                   create_data_table(None, df_res, None, len(df_res), PRIMARY_VERY_LIGHT, 'medium')]
     else:
         res_out = dash.no_update
     if len(meta.locs) > 0:
         df_loc = pd.DataFrame(columns=list(meta.locs))
         loc_out = [html.H3('Locations'),
-                   create_data_table(None, df_loc, None, len(df_loc), SECONDARY_VERY_LIGHT, 'medium')]
+                   create_data_table(None, df_loc, None, len(df_loc), PRIMARY_VERY_LIGHT, 'medium')]
     else:
         loc_out = dash.no_update
     return df_act_val, df_acts, df_ots, df_vals, df_valt, df_valtt, loc_out, meta, res_out, df_events

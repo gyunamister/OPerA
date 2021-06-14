@@ -14,7 +14,7 @@ import pandas as pd
 import dash_table
 import dash
 
-from backend.param.constants import CVIEW_TITLE, GLOBAL_FORM_SIGNAL, CORR_TITLE, CVIEW_URL, HOME_TITLE, DVIEW_TITLE, JSON, PATTERN_URL, PATTERN_TITLE
+from backend.param.constants import PATTERN_URL, PATTERN_TITLE
 from backend.util import add_job, run_task, forget_all_tasks, get_job_id, check_existing_job, read_global_signal_value, read_active_attribute_form, transform_to_guards, write_global_signal_value, no_update, parse_contents
 from backend.tasks.tasks import get_remote_data, build_digitaltwin
 from dtwin.available.available import AvailableTasks
@@ -27,14 +27,10 @@ buttons = [
     button(PATTERN_TITLE, show_title_maker, show_button_id),
 ]
 
-dbc.Row(
-    dbc.Col(html.H4("Condition Repository"))
-),
-
 table_name = dbc.Row(
     [
-        dbc.Col(html.H4("Action Repository")),
         dbc.Col(html.H4("Condition Repository")),
+        dbc.Col(html.H4("Action Repository")),
     ]
 )
 
@@ -44,8 +40,6 @@ action_pattern_content = dbc.Row(
             id='confirm-action-pattern-update',
             message='Action pattern is added.',
         ),
-        dcc.Store(id='action-pattern-repository',
-                  storage_type='session', data=[]),
         dcc.Store(id='action-pattern-dot', storage_type='session'),
         dbc.Col(
             dash_table.DataTable(
@@ -191,17 +185,38 @@ def update_dropdowns(pathname, actions, conditions):
     Output('action-pattern-repository', 'data'),
     Input(show_button_id(add_pattern_title), 'n_clicks'),
     State('action-pattern-repository', 'data'),
-    State('action-dropdown', 'value'),
     State('condition-dropdown', 'value'),
+    State('condition-repository', 'data'),
+    State('action-dropdown', 'value'),
+    State('action-repository', 'data'),
 )
-def update_output(n, action_pattern_repo, actions, conditions):
+def update_output(n, action_pattern_repo, condition_dropdown, conditions, action_dropdown, actions):
     if n is not None:
         print("update output")
-        for a in actions:
-            for c in conditions:
-                action_pattern_repo.append(
-                    {'source': c, 'target': a})
-        print(action_pattern_repo)
+        # assume one-to-one mapping between conditions and actions
+        action_pattern = {"condition": {}, "action": {}}
+        for c in condition_dropdown:
+            action_pattern["condition"]["cond_name"] = c
+            for cond in conditions:
+                if cond["Name"] == c:
+                    action_pattern["condition"]["cond_element"] = cond["Element"]
+                    action_pattern["condition"]["cond_type"] = cond["Diagnostics"]
+                    action_pattern["condition"]["cond_expr"] = cond["Expression"]
+                    action_pattern["condition"]["cond_duration"] = cond["Duration"]
+                    action_pattern["condition"]["cond_operator"] = cond["Operator"]
+                    action_pattern["condition"]["cond_threshold"] = cond["Threshold"]
+                    break
+        for a in action_dropdown:
+            action_pattern["action"]["act_name"] = a
+            for act in actions:
+                if act["Name"] == a:
+                    action_pattern["action"]["act_valve"] = act["Valve"]
+                    action_pattern["action"]["act_value"] = act["Value"]
+                    action_pattern["action"]["act_expr"] = act["Expression"]
+
+        action_pattern_repo.append(
+            action_pattern
+        )
         return True, action_pattern_repo
     else:
         return False, dash.no_update
@@ -217,8 +232,8 @@ def update_graph(action_pattern_repo):
         g = Digraph("", engine='dot')
         g.graph_attr['rankdir'] = 'LR'
         for ap in action_pattern_repo:
-            source = ap['source']
-            target = ap['target']
+            source = ap["condition"]["cond_expr"]
+            target = ap["action"]['act_expr']
             g.node(source, source)
             g.node(target, target)
             g.edge(source, target)
@@ -235,15 +250,11 @@ def update_graph(action_pattern_repo):
 )
 def show_ocpn(pathname, value):
     if pathname == PATTERN_URL and value is not None:
-        print("show ocpn")
-        print(value)
-        print(type(value))
         dot_source = """digraph  {
             node[style="filled"]
             a ->b->d
             a->c->d
             }
             """
-        print(value)
         return value, "dot"
     return no_update(2)

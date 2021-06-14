@@ -16,7 +16,7 @@ from backend.components.userforms import form_dropdown_row, make_job_option, emp
     radio_item_id_maker, radio_items, create_attribute_forms, attribute_form_id
 from backend.param.constants import CSV, JSON, DEFAULT_JOBS, CSV_ATTRIBUTES_FST, NA, CSV_ATTRIBUTES_SND, \
     JOBS_KEY, JOB_DATA_DATE_KEY, JOB_DATA_NAME_KEY, CSV_ATTRIBUTES_FST_MULT, CSV_ATTRIBUTES_SND_MULT, \
-    JOB_DATA_TYPE_KEY, CORR_URL, CORR_TITLE, PARSE_TITLE, STORES_SIGNALS, FORMS, GLOBAL_FORM_SIGNAL, DEFAULT_FORM, \
+    JOB_DATA_TYPE_KEY, CVIEW_URL, CORR_TITLE, PARSE_TITLE, STORES_SIGNALS, FORMS, GLOBAL_FORM_SIGNAL, DEFAULT_FORM, \
     ATTRIBUTE_CSV_TEXT, ATTRIBUTE_OCEL_TEXT, SHOW_PREVIEW_ROWS, DEV_CTX_TITLE, MDL, CVIEW_TITLE, HOME_TITLE
 from backend.param.styles import LINK_CONTENT_STYLE, CENTER_DASHED_BOX_STYLE, NO_DISPLAY, FONT_STYLE, BUTTON_LEFT_STYLE
 from backend.tasks.tasks import store_redis_backend, parse_data, get_remote_data, db, user_log_key
@@ -38,7 +38,7 @@ jobs_title = "Variants"
 jobs_title_hidden = "hidden-jobs"
 upload_table_title = 'all rows'
 parse_title = 'parse'
-goto_title = 'Correlate'
+goto_title = 'Control view'
 remove_jobs_title = 'remove variants'
 start_from_last_job = 'selected variant'
 selected_attribute_form = 'selected-attribute-selection'
@@ -50,7 +50,7 @@ default_attribute_layout = [
     dbc.Collapse(
         [
             single_row(
-                html.H2("Attribute Selection")
+                html.H2("Pre-process")
             ),
             dcc.Loading(
                 id=f"loading-1",
@@ -70,11 +70,11 @@ default_attribute_layout = [
                         button(parse_title,
                                compute_title_maker,
                                compute_button_id,
-                               href=CORR_URL),
+                               href=CVIEW_URL),
                         button(goto_title,
                                goto_title_maker,
                                goto_button_id,
-                               href=CORR_URL,
+                               href=CVIEW_URL,
                                style=BUTTON_LEFT_STYLE)
                     ]), 'end'),
             html.Hr(),
@@ -94,10 +94,8 @@ upload_tab_content = card(
             [
                 html.Br(),
                 html.H2("Upload Data"),
-                html.Br(),
-                dcc.Markdown('''Please note that the format for CSV files with columns containing multiple entries (e.g 
-                multiple object ids for a specific object type) needs to comply to the following: Each of those entries
-                needs to be enclosed with ", e.g. "id1, id2, id3 ...". '''),
+                # html.Br(),
+                # dcc.Markdown(''' '''),
                 html.Br(),
                 dbc.Row(
                     [
@@ -142,7 +140,7 @@ jobs_tab_content = card(
     ])
 
 # Page layout
-page_layout = container("Action-Oriented Process Mining using Action Patterns",
+page_layout = container("Action-Oriented Process Mining Using Digital Twins",
                         [
                             dbc.Tabs([
                                 dbc.Tab(upload_tab_content,
@@ -207,9 +205,8 @@ def upload_data(session, content, name, jobs, options, last_job):
         if check_existing_job(jobs, log_hash):
             # The dataset was already uploaded
             job_id = get_job_id(jobs, log_hash)
-            return dash.no_update,
-            dash.no_update, html.Div(dbc.Alert("You have uploaded this log already. Please look for job id "
-                                               + str(job_id) + " under the jobs tab.", color="info")), \
+            return dash.no_update, \
+                dash.no_update, html.Div(dbc.Alert("You have uploaded this log already. Please look for job id " + str(job_id) + " under the jobs tab.", color="info")), \
                 dash.no_update, dash.no_update, dash.no_update
         else:
             # Save new job
@@ -217,10 +214,7 @@ def upload_data(session, content, name, jobs, options, last_job):
             # Parse raw data
             out, success = parse_contents(content, data_format)
             if success:
-                if data_format == CSV:
-                    task_id = run_task(jobs, log_hash, AvailableTasks.UPLOAD.value,
-                                       store_redis_backend, data=out)
-                elif data_format == MDL:
+                if data_format == CSV or data_format == MDL:
                     task_id = run_task(jobs, log_hash, AvailableTasks.UPLOAD.value,
                                        store_redis_backend, data=out)
                 else:
@@ -251,7 +245,7 @@ def upload_data(session, content, name, jobs, options, last_job):
             labels = [option for sublist in labels for option in sublist]
             return dash.no_update, dash.no_update, dash.no_update, labels, FONT_STYLE, last_job
         else:
-            return tuple([dash.no_update] * 6)
+            return no_update(6)
 
 
 # Update Attribute Selection and Data Preview based on new job or selected job
@@ -263,7 +257,7 @@ def upload_data(session, content, name, jobs, options, last_job):
     Output('init', 'data'),
     Output(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
     Output('last-job', 'data'),
-    Output(global_signal_id_maker(HOME_TITLE), 'children'),
+    # Output(global_signal_id_maker(HOME_TITLE), 'children'),
 
     Input(collapse_button_id(start_from_last_job), 'n_clicks'),
     Input('signal', 'children'),
@@ -284,11 +278,15 @@ def update_home_output(n, value, radio_value, at, jobs, nonactive, active, init,
         forms = create_attribute_forms(jobs, dfs, form)
         if radio_value is None:
             return dash.no_update, dash.no_update, forms, dash.no_update, False, \
-                dash.no_update, dash.no_update, dash.no_update
+                dash.no_update, dash.no_update
+            # , dash.no_update
         return dash.no_update, dash.no_update, forms, dash.no_update, False, \
             write_global_signal_value(
-                [radio_value, str(datetime.now())]), dash.no_update, write_global_signal_value(
-                [radio_value, str(datetime.now())])
+                [radio_value, str(datetime.now())]), \
+            dash.no_update
+        # , \
+        # write_global_signal_value(
+        #     [radio_value, str(datetime.now())])
 
     else:
         rows = SHOW_PREVIEW_ROWS
@@ -321,8 +319,9 @@ def update_home_output(n, value, radio_value, at, jobs, nonactive, active, init,
                     )], \
                     dash.no_update, \
                     dash.no_update, \
-                    log_hash, \
-                    dash.no_update
+                    log_hash
+                # , \
+                # dash.no_update
             else:
                 oc_data = get_remote_data(
                     user, log_hash, jobs, AvailableTasks.UPLOAD.value)
@@ -346,18 +345,20 @@ def update_home_output(n, value, radio_value, at, jobs, nonactive, active, init,
                                               CSV_ATTRIBUTES_SND,
                                               CSV_ATTRIBUTES_SND_MULT,
                                               log_hash,
-                                              True)
+                                              True,
+                                              style=NO_DISPLAY)
                         ], id=attribute_form_id(log_hash)
                     )], \
                     dash.no_update, \
                     dash.no_update, \
-                    log_hash, \
-                    dash.no_update
+                    log_hash
+                # , \
+                # dash.no_update
         else:
             # User selected a different job from all jobs --> change focus
             if n is not None and nonactive is not None:
                 if len(nonactive) == 0:
-                    return no_update(8)
+                    return no_update(7)
                 data = get_remote_data(
                     user, radio_value, jobs, AvailableTasks.UPLOAD.value)
                 all_forms = nonactive + active
@@ -378,9 +379,10 @@ def update_home_output(n, value, radio_value, at, jobs, nonactive, active, init,
                         new_active, \
                         dash.no_update, \
                         write_global_signal_value([radio_value, str(datetime.now())]), \
-                        radio_value, \
-                        write_global_signal_value(
-                            [radio_value, str(datetime.now())])
+                        radio_value
+                    # , \
+                    # write_global_signal_value(
+                    #     [radio_value, str(datetime.now())])
                 else:
                     df_events = export_oc_data_events_to_dataframe(
                         data.raw.events, data.raw.objects, rows)
@@ -393,12 +395,84 @@ def update_home_output(n, value, radio_value, at, jobs, nonactive, active, init,
                         new_active, \
                         dash.no_update, \
                         write_global_signal_value([radio_value, str(datetime.now())]), \
-                        radio_value, write_global_signal_value(
-                            [radio_value, str(datetime.now())])
+                        radio_value
+                    # , \
+                    # write_global_signal_value(
+                    #     [radio_value, str(datetime.now())])
             else:
                 # Empty jobs don't need initialization
                 return dash.no_update, dash.no_update, dash.no_update, dash.no_update, False, \
-                    dash.no_update, dash.no_update, dash.no_update
+                    dash.no_update, dash.no_update
+                # , dash.no_update
+
+
+# Page layout
+page_layout = container("Action-oriented Process Mining Using Digital Twins",
+                        [
+                            dbc.Tabs([
+                                dbc.Tab(upload_tab_content,
+                                        label="Upload", tab_id='upload'),
+                                dbc.Tab(jobs_tab_content,
+                                        label="Jobs", tab_id='jobs')
+                            ], id='home-tabs')
+                        ])
+
+
+@app.callback(
+    # Output(global_signal_id_maker(CORR_TITLE), 'children'),
+    # Output(temp_jobs_store_id_maker(CORR_TITLE), 'data'),
+    Output(global_signal_id_maker(PARSE_TITLE), 'children'),
+    Output(temp_jobs_store_id_maker(PARSE_TITLE), 'data'),
+    Output(form_persistence_id_maker(PARSE_TITLE), 'data'),
+    Input(compute_button_id(parse_title), 'n_clicks'),
+    State('active-attribute-selection', 'children'),
+    State('jobs-store', 'data'),
+    # State(temp_jobs_store_id_maker(CORR_TITLE), 'data'),
+    State(temp_jobs_store_id_maker(PARSE_TITLE), 'data'),
+    State(form_persistence_id_maker(PARSE_TITLE), 'data')
+)
+def run_parse_log(n, children, jobs, temp_jobs, form):
+    if n is not None:
+        activity, location, log_hash, objects, resource, timestamp, values = read_active_attribute_form(
+            children)
+        objects = guarantee_list_input(objects)
+        values = guarantee_list_input(values)
+        if form is None:
+            form = DEFAULT_FORM
+        form[log_hash] = get_attribute_form_dict(
+            activity, location, objects, resource, timestamp, values)
+        user = request.authorization['username']
+        if jobs[JOBS_KEY][log_hash][JOB_DATA_TYPE_KEY] == CSV or jobs[JOBS_KEY][log_hash][JOB_DATA_TYPE_KEY] == MDL:
+            df = get_remote_data(user, log_hash, jobs,
+                                 AvailableTasks.UPLOAD.value)
+            csv_param = build_csv_param(
+                activity, location, objects, resource, timestamp, values)
+            loc, res = set_special_attributes(location, resource)
+            task_id = run_task(jobs, log_hash, AvailableTasks.PARSE.value, parse_data, temp_jobs,
+                               data=df,
+                               data_type=CSV,
+                               parse_param=csv_param,
+                               resource=res,
+                               location=loc)
+        else:
+            oc_data = get_remote_data(
+                user, log_hash, jobs, AvailableTasks.UPLOAD.value)
+            if oc_data is None:
+                return no_update(3)
+            loc, res = set_special_attributes(location, resource)
+            json_param = build_json_param(location, resource)
+            if loc:
+                oc_data.meta.locs = {event.vmap[json_param.vmap_params[AvailableSelections.LOCATION]]
+                                     for index, event in oc_data.raw.events.items()}
+            if res:
+                oc_data.meta.ress = {event.vmap[json_param.vmap_params[AvailableSelections.RESOURCE]]
+                                     for index, event in oc_data.raw.events.items()}
+            oc_data.vmap_param = json_param
+            task_id = run_task(jobs, log_hash, AvailableTasks.PARSE.value, store_redis_backend, temp_jobs,
+                               data=oc_data)
+        print(write_global_signal_value([log_hash, task_id]))
+        return write_global_signal_value([log_hash, task_id]), jobs, form
+    return no_update(3)
 
 
 # Start job reset
