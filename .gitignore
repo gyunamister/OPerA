@@ -65,3 +65,7 @@ venv.bak/
 # Examples
 /example_logs
 /example_code
+
+# analysis
+/src/evaluation
+src/dtwin/infosystem/logs

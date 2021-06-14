@@ -64,14 +64,18 @@ def apply(dt, parameters=None):
         if tr.name in guards.keys():
             guard = guards[tr.name]
         else:
-            guard = ""
+            guard = None
         if tr.silent == True:
             g.node(this_uuid, this_uuid, fontcolor="#FFFFFF", shape="box", xlabel=guard,
                    fillcolor="#000000", style="filled", labelfontsize="18.0")
             all_objs[tr] = this_uuid
         elif tr.name not in trans_names:
-            g.node(this_uuid, tr.name, shape="box",
-                   fontsize="36.0", xlabel=guard, labelfontsize="36.0")
+            if guard is not None:
+                g.node(this_uuid, tr.name, shape="box",
+                       fontsize="36.0", xlabel=guard, labelfontsize="36.0")
+            else:
+                g.node(this_uuid, tr.name, shape="box",
+                       fontsize="36.0", labelfontsize="36.0")
             trans_names[tr.name] = this_uuid
             all_objs[tr] = this_uuid
         else:

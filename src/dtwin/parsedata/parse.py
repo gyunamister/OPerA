@@ -18,6 +18,7 @@ def parse_csv(df: ddf.DataFrame, cfg: CsvParseParameters) -> ObjectCentricData:
     events = {}
     objects = {}
     acts = set()
+    print(df)
     for index, row in df.iterrows():
         add_event(events, index, row, cfg),
         add_obj(objects,

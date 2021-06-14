@@ -1,6 +1,7 @@
 from dtwin.digitaltwin.ocpn.objects.obj import ObjectCentricPetriNet
 from dtwin.digitaltwin.ocpn.objects.obj import Marking
 import pandas as pd
+from pm4pymdl.algo.mvp.utils import succint_mdl_to_exploded_mdl
 
 
 def apply(ocpn, log, marking=None, parameters=None):
@@ -12,6 +13,8 @@ def apply(ocpn, log, marking=None, parameters=None):
 
     if len(log) == 0:
         return marking
+
+    log = succint_mdl_to_exploded_mdl.apply(log)
 
     object_types = [x for x in log.columns if not x.startswith("event_")]
 

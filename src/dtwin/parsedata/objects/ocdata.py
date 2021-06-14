@@ -75,17 +75,7 @@ class ObjectCentricData:
     vmap_param: Union[CsvParseParameters, JsonParseParameters]
 
     def __post_init__(self):
-        if self.vmap_param.vmap_availables[AvailableSelections.RESOURCE]:
-            self.meta.ress = {event.vmap[self.vmap_param.vmap_params[AvailableSelections.RESOURCE]]
-                              for index, event in self.raw.events.items()}
-        else:
-            self.meta.ress = {}
-
-        if self.vmap_param.vmap_availables[AvailableSelections.LOCATION]:
-            self.meta.locs = {event.vmap[self.vmap_param.vmap_params[AvailableSelections.LOCATION]]
-                              for index, event in self.raw.events.items()}
-        else:
-            self.meta.locs = {}
+        self.meta.locs = {}
 
 
 def sort_events(data: ObjectCentricData) -> None:

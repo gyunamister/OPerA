@@ -24,10 +24,14 @@ class AvailableTransitionDiagnostics(Enum):
     STD_SERVICE = 'std. service'.title()
     TOTAL_REWORK = 'tot. rework'.title()
     TOTAL_MODELMOVE = 'tot. move on model'.title()
+    OBJECT_COUNT = 'object count'.title()
 
 
 class AvailableFlowDiagnostics(Enum):
     PROB = 'routing probability'.title()
+    AVG_SOJOURN = 'avg. sojourn'.title()
+    MED_SOJOURN = 'med. sojourn'.title()
+    STD_SOJOURN = 'std. sojourn'.title()
 
 
 class AvailableSelections(Enum):
@@ -99,6 +103,8 @@ class AvailableTasks(Enum):
     BUILD = 'build'
     DIAGNIZE = 'diagnize'
     OPERATE = 'operate'
+    CONVERT = 'convert'
+    EVALUATE = 'evaluate'
 
 
 class AvailableColorPalettes(Enum):

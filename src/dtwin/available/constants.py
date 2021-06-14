@@ -45,4 +45,7 @@ PLACE = 'place'
 FLOW = 'flow'
 GUARD = 'guard'
 
-COMP_OPERATORS = ['>', '==', '<', '>=', '<=', '!=']
+COMP_OPERATORS = ['>', '=', '<', '>=', '<=', '!=']
+
+OBJECT_FILTER = 'object-filter'
+EVENT_FILTER = 'event-filter'

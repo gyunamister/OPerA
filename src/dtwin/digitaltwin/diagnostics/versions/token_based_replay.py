@@ -1,6 +1,6 @@
 import pm4py
 from pm4pymdl.algo.mvp.utils import succint_mdl_to_exploded_mdl, clean_frequency, clean_arc_frequency
-from pm4pymdl.algo.mvp.projection import algorithm
+from dtwin.digitaltwin.mvp.projection import algorithm
 from pm4py.algo.discovery.alpha import algorithm as alpha_miner
 from pm4py.algo.discovery.inductive import algorithm as inductive_miner
 from pm4py.algo.discovery.dfg import algorithm as dfg_discovery
@@ -31,14 +31,9 @@ def apply(ocpn, df, parameters=None):
         parameters = {}
 
     allowed_activities = parameters["allowed_activities"] if "allowed_activities" in parameters else None
-    debug = parameters["debug"] if "debug" in parameters else True
+    debug = parameters["debug"] if "debug" in parameters else False
 
-    try:
-        if df.type == "succint":
-            df = succint_mdl_to_exploded_mdl.apply(df)
-            df.type = "exploded"
-    except:
-        pass
+    df = succint_mdl_to_exploded_mdl.apply(df)
 
     if len(df) == 0:
         df = pd.DataFrame({"event_id": [], "event_activity": []})
@@ -74,6 +69,8 @@ def apply(ocpn, df, parameters=None):
     diff_basic_stats = 0
 
     persps = ocpn.object_types
+    # when replaying streaming log, some objects are missing.
+    persps = [x for x in persps if x in df.columns]
 
     for persp in persps:
         net, im, fm = ocpn.nets[persp]
@@ -221,6 +218,18 @@ def apply(ocpn, df, parameters=None):
         diag["group_size_hist"][persp] = group_size_hist
         diag["act_count_replay"][persp] = len_different_ids
         diag["group_size_hist_replay"][persp] = eid_acti_count
+
+    diag["aggregated_statistics_performance_median_flattened"] = {}
+    for persp in diag["aggregated_statistics_performance_median"]:
+        for el in diag["aggregated_statistics_performance_median"][persp]:
+            diag["aggregated_statistics_performance_median_flattened"][repr(
+                el)] = diag["aggregated_statistics_performance_median"][persp][el]['label']
+
+    diag["aggregated_statistics_performance_mean_flattened"] = {}
+    for persp in diag["aggregated_statistics_performance_mean"]:
+        for el in diag["aggregated_statistics_performance_mean"][persp]:
+            diag["aggregated_statistics_performance_mean_flattened"][repr(
+                el)] = diag["aggregated_statistics_performance_mean"][persp][el]['label']
 
     diag["computation_statistics"] = {"diff_log": diff_log, "diff_model": diff_model,
                                       "diff_token_replay": diff_token_replay,

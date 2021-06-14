@@ -57,7 +57,7 @@ def apply(obj, parameters=None):
         tr_count += 1
         if tr.silent == True:
             g.node(this_uuid, this_uuid, fontcolor="#FFFFFF", shape="box",
-                   fillcolor="#000000", style="filled", xlabel="Test", labelfontsize="18.0")
+                   fillcolor="#000000", style="filled", labelfontsize="18.0")
             all_objs[tr] = this_uuid
         elif tr.name not in trans_names:
             g.node(this_uuid, "%s \n (%s)" % (tr.name, this_uuid), shape="box", fontsize="36.0",
