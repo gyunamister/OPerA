@@ -361,7 +361,6 @@ def upload_valves(content, old_valves):
     if content is not None:
         data, success = parse_contents(content, JSON)
         valves = data['valves']
-        print(valves)
         return valves
     else:
         print(old_valves)

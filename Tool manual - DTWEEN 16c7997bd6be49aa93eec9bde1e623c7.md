@@ -6,7 +6,7 @@ The control view of a DT-IM describes the routing/resource allocation rules of b
 
 By communicating with a DT-IM, users can define action patterns which define a condition describing an undesired situation and an action to resolve the situation. *Dtween* monitors the action patterns by analyzing streaming event data and produces necessary actions.
 
-![resources/images/Untitled.png](resources/images/Untitled.png)
+![Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled.png](Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled.png)
 
 # Functionalities
 
@@ -126,7 +126,7 @@ By communicating with a DT-IM, users can define action patterns which define a c
 
 ### 1.2. **Importing OCELs and parsing it**
 
-![resources/images/Untitled%201.png](resources/images/Untitled%201.png)
+![Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%201.png](Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%201.png)
 
 1. Import OCEL JSON or CSV files
 2. Select attributes
@@ -134,7 +134,7 @@ By communicating with a DT-IM, users can define action patterns which define a c
 
 ### 1.3. **Discovering an OCPN, annotating guards and valves**
 
-![resources/images/Untitled%202.png](resources/images/Untitled%202.png)
+![Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%202.png](Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%202.png)
 
 1. Discovering an OCPN
 2. Uploading JSON-based guards
@@ -164,7 +164,7 @@ By communicating with a DT-IM, users can define action patterns which define a c
 
 ### 2.2. Online updates
 
-![resources/images/Untitled%203.png](resources/images/Untitled%203.png)
+![Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%203.png](Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%203.png)
 
 1. Importing system information
 2. Setting the size of the sliding window
@@ -173,7 +173,7 @@ By communicating with a DT-IM, users can define action patterns which define a c
 
 ### 2.3. Offline analysis
 
-![resources/images/Untitled%204.png](resources/images/Untitled%204.png)
+![Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%204.png](Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%204.png)
 
 1. Selecting time window for analysis
 2. Showing diagnostics
@@ -191,7 +191,7 @@ By communicating with a DT-IM, users can define action patterns which define a c
 
 ### 3.2. Defining conditions
 
-![resources/images/Untitled%205.png](resources/images/Untitled%205.png)
+![Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%205.png](Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%205.png)
 
 1. Selecting types of diagnostics (e.g., waiting time) to be used to formulate a condition
 2. Selecting comparator (e.g., >,=,<) to be used to formulate a condition
@@ -201,7 +201,7 @@ By communicating with a DT-IM, users can define action patterns which define a c
 
 ### 3.3. Defining actions
 
-![resources/images/Untitled%206.png](resources/images/Untitled%206.png)
+![Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%206.png](Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%206.png)
 
 1. Selecting a valve to be used to define an action
 2. Selecting values of the selected valve to define an action
@@ -210,7 +210,7 @@ By communicating with a DT-IM, users can define action patterns which define a c
 
 ### 3.4. Defining action patterns
 
-![resources/images/Untitled%207.png](resources/images/Untitled%207.png)
+![Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%207.png](Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%207.png)
 
 1. Selecting conditions to be used to formulate an action pattern
 2. Selecting actions to be used to formulate an action pattern
@@ -230,7 +230,7 @@ By communicating with a DT-IM, users can define action patterns which define a c
 
 ### 4.2. Evaluating action patterns and generating actions
 
-![resources/images/Untitled%208.png](resources/images/Untitled%208.png)
+![Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%208.png](Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%208.png)
 
 1. While updating the states of the digital twin, the action patterns are also evaluated generating actions accordingly.
 
@@ -292,7 +292,7 @@ To facilitate the test of the tool, we provide an experimental environment with 
 
 Below is the process model describing the order handling process in OCPN formalism:
 
-![resources/images/Untitled%209.png](resources/images/Untitled%209.png)
+![Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%209.png](Tool%20manual%20-%20DTWEEN%2016c7997bd6be49aa93eec9bde1e623c7/Untitled%209.png)
 
 - 14 resources are available in total at any point in time, each of them being responsible for multiple activities in the process.
 - Orders are randomly placed and the resources process the orders and the corresponding items and routes based on First-in-First-out rule.
