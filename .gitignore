@@ -70,3 +70,4 @@ venv.bak/
 /src/evaluation
 /src/infosystem/logs
 /src/infosystem/database
+/.vscode
