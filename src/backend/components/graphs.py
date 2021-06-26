@@ -8,9 +8,9 @@ from backend.param.colors import SECONDARY_LIGHT, INTRINSIC_COLOR, PRIMARY, DETE
     PRIMARY_VERY_LIGHT
 from backend.param.constants import INTRINSIC_DEVIATION, EXTERNAL_DEVIATION, NEGATIVE_CONTEXT, DETECTION, FONTSIZE_VIZ, \
     UNKNOWN_CAUSE, EDGE_LBL_CAUSE, EDGE_LBL_DETECT, EDGE_LBL_CONTAIN, COLORSCALE, POSITIVE_CONTEXT, DP
-from dtwin.available.available import AvailableGranularity
+from dtween.available.available import AvailableGranularity
 import graphviz as pgv
-from dtwin.available.constants import HOURS_IN_DAY, SITUATION_AGG_KEY
+from dtween.available.constants import HOURS_IN_DAY, SITUATION_AGG_KEY
 from plotly.subplots import make_subplots
 
 deviation_pos = 4

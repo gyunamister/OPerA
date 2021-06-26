@@ -22,12 +22,12 @@ from backend.param.colors import SECONDARY_VERY_LIGHT, SECONDARY, INTRINSIC_COLO
 from backend.param.constants import RESULT_TITLE, TOP_KEY, DP, SUMMARY_KEY, NA, CONTEXT_KEY
 from backend.param.styles import act_style, TABLE_ROW_STYLE, HTML_TABLE_CELL_STYLE, NO_DISPLAY
 from backend.util import write_global_signal_value, display_time
-from dtwin.available.available import AvailableTasks, AvailableSelections, AvailableGranularity
-from dtwin.available.constants import HOURS_IN_DAY
-from dtwin.parsedata.objects.exporter.exporter import export_to_pm4py, TID_KEY, EVENTS_KEY, COLOR_KEY, ACT_KEY, \
+from dtween.available.available import AvailableTasks, AvailableSelections, AvailableGranularity
+from dtween.available.constants import HOURS_IN_DAY
+from dtween.parsedata.objects.exporter.exporter import export_to_pm4py, TID_KEY, EVENTS_KEY, COLOR_KEY, ACT_KEY, \
     export_log_to_dict, export_logs_to_dict, TIMESTAMP_KEY, export_trace_to_dataframe, \
     export_oc_data_events_to_dataframe, export_trace_to_dict, VALUES_KEY, OBJECTS_KEY
-from dtwin.parsedata.objects.oclog import Trace, ObjectCentricLog
+from dtween.parsedata.objects.oclog import Trace, ObjectCentricLog
 
 
 def generate_table_from_df(dataframe, max_rows=10):

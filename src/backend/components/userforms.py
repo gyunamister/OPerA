@@ -10,7 +10,7 @@ from backend.param.available import extract_title
 from backend.param.constants import JOBS_KEY, JOB_ID_KEY, JOB_DATA_NAME_KEY, JOB_DATA_DATE_KEY, SEP, CSV_ATTRIBUTES_FST, \
     NA, CSV_ATTRIBUTES_SND, MEMORY_PERSISTENCE, OBJECTS, VALUES, CB_TYPE_DETECT, FORMTEXT_KEY, PLACEHOLDER_KEY, \
     ATTRIBUTE_CSV_TEXT, ATTRIBUTE_OCEL_TEXT
-from dtwin.available.available import extract_options, AvailableNormRanges
+from dtween.available.available import extract_options, AvailableNormRanges
 from dash.dependencies import Input, Output, State
 from backend.param.colors import PRIMARY, PRIMARY_LIGHT
 from backend.param.styles import BUTTON_STYLE, NO_DISPLAY, DETECTOR_STYLE, BUTTON_TOOLTIP_STYLE, BUTTON_TOOLTIP_HD_STYLE

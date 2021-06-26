@@ -10,8 +10,8 @@ from backend.param.constants import JOB_ID_KEY, JOBS_KEY, JOB_DATA_TYPE_KEY, JOB
     JOB_TASKS_KEY, SEP, NA, CSV, PROPS, CHILDREN, VALUE, OBJECTS, TIMESTAMP, VALUES, CORR_METHOD, LOCATION, RESOURCE, ACTIVITY, MDL, JSON
 from backend.tasks.tasks import celery, get_task, db, results_key
 from celery.result import AsyncResult
-from dtwin.parsedata.config.param import CsvParseParameters, JsonParseParameters
-from dtwin.available.constants import INTERVALS, TRANSITION, GUARD
+from dtween.parsedata.config.param import CsvParseParameters, JsonParseParameters
+from dtween.available.constants import INTERVALS, TRANSITION, GUARD
 
 
 def add_job(data_format, date, jobs, log_hash, name):

@@ -16,14 +16,14 @@ from backend.param.constants import CSV, AGGREGATOR, CONTEXT_KEY, INCLUDES_KEY, 
 from backend.param.settings import CeleryConfig, redis_pwd
 from celery import Celery
 from celery.result import AsyncResult
-from dtwin.available.available import AvailableCorrelations
-from dtwin.parsedata.objects.ocdata import ObjectCentricData, sort_events
-from dtwin.parsedata.objects.oclog import ObjectCentricLog, Trace
-from dtwin.parsedata.parse import parse_csv, parse_json
-from dtwin.digitaltwin.digitaltwin.objects.factory import get_digital_twin
-from dtwin.digitaltwin.ocel.objects.mdl.importer import factory as mdl_import_factory
-from dtwin.digitaltwin.ocpn.discovery import algorithm as discovery_factory
-from dtwin.digitaltwin.diagnostics import algorithm as diagnostics_factory
+from dtween.available.available import AvailableCorrelations
+from dtween.parsedata.objects.ocdata import ObjectCentricData, sort_events
+from dtween.parsedata.objects.oclog import ObjectCentricLog, Trace
+from dtween.parsedata.parse import parse_csv, parse_json
+from dtween.digitaltwin.digitaltwin.objects.factory import get_digital_twin
+from dtween.digitaltwin.ocel.objects.mdl.importer import factory as mdl_import_factory
+from dtween.digitaltwin.ocpn.discovery import algorithm as discovery_factory
+from dtween.digitaltwin.diagnostics import algorithm as diagnostics_factory
 import pickle
 import redis
 
@@ -48,7 +48,7 @@ def store_redis(data, task):
 db = redis.StrictRedis(host='localhost', port=6379, password=redis_pwd, db=0)
 
 db.keys()
-celery = Celery('dtwin.worker',
+celery = Celery('dtween.worker',
                 )
 celery.config_from_object(CeleryConfig)
 

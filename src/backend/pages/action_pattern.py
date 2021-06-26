@@ -17,7 +17,7 @@ import dash
 from backend.param.constants import PATTERN_URL, PATTERN_TITLE
 from backend.util import add_job, run_task, forget_all_tasks, get_job_id, check_existing_job, read_global_signal_value, read_active_attribute_form, transform_to_guards, write_global_signal_value, no_update, parse_contents
 from backend.tasks.tasks import get_remote_data, build_digitaltwin
-from dtwin.available.available import AvailableTasks
+from dtween.available.available import AvailableTasks
 
 from flask import request
 

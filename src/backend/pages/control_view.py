@@ -15,13 +15,13 @@ import dash
 from collections import OrderedDict
 from backend.param.constants import CVIEW_TITLE, CVIEW_URL, PARSE_TITLE, JSON, GLOBAL_FORM_SIGNAL
 
-from dtwin.digitaltwin.digitaltwin.visualization import visualizer as dt_vis_factory
-from dtwin.digitaltwin.digitaltwin.util import guards_to_df, df_to_gaurds
+from dtween.digitaltwin.digitaltwin.visualization import visualizer as dt_vis_factory
+from dtween.digitaltwin.digitaltwin.util import guards_to_df, df_to_gaurds
 from backend.util import add_job, run_task, forget_all_tasks, get_job_id, check_existing_job, read_global_signal_value, read_active_attribute_form, transform_to_guards, write_global_signal_value, no_update, parse_contents
 from backend.tasks.tasks import get_remote_data, build_digitaltwin, store_redis_backend
-from dtwin.available.available import AvailableTasks
-from dtwin.parsedata.objects.ocdata import ObjectCentricData
-from dtwin.digitaltwin.ocel.objects.ocel.converter import factory as ocel_converter_factory
+from dtween.available.available import AvailableTasks
+from dtween.parsedata.objects.ocdata import ObjectCentricData
+from dtween.digitaltwin.ocel.objects.ocel.converter import factory as ocel_converter_factory
 
 from flask import request
 
@@ -358,7 +358,6 @@ def upload_guards(content, old_guards):
     State('valve-store', 'data')
 )
 def upload_valves(content, old_valves):
-    print("upload2")
     if content is not None:
         data, success = parse_contents(content, JSON)
         valves = data['valves']

@@ -1,29 +1,29 @@
 from enum import Enum
 
-from dtwin.available.available import AvailableCorrelations
-from dtwin.available.ext import DtwinExtension, DtwinExtensible
-from dtwin.parsedata.correlate import correlate_shared_objs, correlate_obj_path
+from dtween.available.available import AvailableCorrelations
+from dtween.available.ext import DtweenExtension, DtweenExtensible
+from dtween.parsedata.correlate import correlate_shared_objs, correlate_obj_path
 
 
 class AvailableCorrelationsExt(Enum):
     MAXIMUM_CORRELATION = {AvailableCorrelations.MAXIMUM_CORRELATION.value:
-                           DtwinExtension(name='shared object id relation (maximum)',
-                                          param={
-                                              'version': AvailableCorrelations.MAXIMUM_CORRELATION},
-                                          typ=DtwinExtensible.CORR,
-                                          call=correlate_shared_objs)
+                           DtweenExtension(name='shared object id relation (maximum)',
+                                           param={
+                                               'version': AvailableCorrelations.MAXIMUM_CORRELATION},
+                                           typ=DtweenExtensible.CORR,
+                                           call=correlate_shared_objs)
                            }
     INITIAL_PAIR_CORRELATION = {AvailableCorrelations.INITIAL_PAIR_CORRELATION.value:
-                                DtwinExtension(name='shared object id relation (minimum)',
-                                               param={
-                                                   'version': AvailableCorrelations.INITIAL_PAIR_CORRELATION},
-                                               typ=DtwinExtensible.CORR,
-                                               call=correlate_shared_objs)}
+                                DtweenExtension(name='shared object id relation (minimum)',
+                                                param={
+                                                    'version': AvailableCorrelations.INITIAL_PAIR_CORRELATION},
+                                                typ=DtweenExtensible.CORR,
+                                                call=correlate_shared_objs)}
     OBJ_PATH_CORRELATION = {AvailableCorrelations.OBJ_PATH_CORRELATION.value:
-                            DtwinExtension(name='object path correlation',
-                                           param={},
-                                           typ=DtwinExtensible.CORR,
-                                           call=correlate_obj_path)}
+                            DtweenExtension(name='object path correlation',
+                                            param={},
+                                            typ=DtweenExtensible.CORR,
+                                            call=correlate_obj_path)}
 
 
 def get_available_from_name(method, default, available):

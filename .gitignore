@@ -68,4 +68,5 @@ venv.bak/
 
 # analysis
 /src/evaluation
-src/dtwin/infosystem/logs
+/src/infosystem/logs
+/src/infosystem/database

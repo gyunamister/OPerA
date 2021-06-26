@@ -25,8 +25,8 @@ from backend.util import add_job, run_task, forget_all_tasks, get_job_id, check_
     set_special_attributes, get_attribute_form_dict, guarantee_list_input, no_update, build_json_param, \
     read_global_signal_value
 from celery.result import AsyncResult
-from dtwin.available.available import AvailableTasks, AvailableSelections
-from dtwin.parsedata.objects.exporter.exporter import export_oc_data_events_to_dataframe
+from dtween.available.available import AvailableTasks, AvailableSelections
+from dtween.parsedata.objects.exporter.exporter import export_oc_data_events_to_dataframe
 from dash.dependencies import Input, Output, State
 from datetime import datetime
 

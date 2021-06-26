@@ -21,4 +21,4 @@ app = dash.Dash(__name__,
                 )
 app.config.suppress_callback_exceptions = True
 app.server.secret_key = os.environ.get('SECRET_KEY')
-app.title = 'Dtwin'
+app.title = 'Dtween'

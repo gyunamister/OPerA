@@ -1,5 +1,5 @@
 from backend.param.colors import PRIMARY, PRIMARY_VERY_LIGHT, INTRINSIC_COLOR
-from dtwin.available.available import AvailableSelections, AvailableAggregators
+from dtween.available.available import AvailableSelections, AvailableAggregators
 
 # Jobs Store
 JOB_ID_KEY = 'job_id'

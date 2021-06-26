@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# app.secret_key = "dtwin"
+# app.secret_key = "dtween"
 entity_redis = os.getenv('REDIS_LOCALHOST_OR_DOCKER')
 entity_rabbit = os.getenv('RABBIT_LOCALHOST_OR_DOCKER')
 rabbit_user = os.getenv('RABBITMQ_USER')

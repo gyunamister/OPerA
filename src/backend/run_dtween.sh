@@ -1,6 +1,4 @@
-#!/bin/zsh
-
-path="$DTWIN_PATH"
+path="$DTWEEN_PATH"
 
 export PYTHONPATH="${path}/src/backend/:${path}/src/:$PYTHONPATH"
 

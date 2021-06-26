@@ -16,13 +16,13 @@ import dash_table
 import dash
 from collections import OrderedDict
 from backend.param.constants import CVIEW_TITLE, DVIEW_TITLE, GLOBAL_FORM_SIGNAL, DVIEW_URL, HOME_TITLE, PARSE_TITLE
-from dtwin.available.constants import COMP_OPERATORS
+from dtween.available.constants import COMP_OPERATORS
 
-from dtwin.digitaltwin.ocpn.visualization import visualizer as ocpn_vis_factory
+from dtween.digitaltwin.ocpn.visualization import visualizer as ocpn_vis_factory
 from backend.util import add_job, run_task, forget_all_tasks, get_job_id, check_existing_job, read_global_signal_value, read_active_attribute_form, write_global_signal_value, no_update
 from backend.tasks.tasks import get_remote_data, generate_diagnostics
-from dtwin.available.available import AvailableTasks, AvailablePlaceDiagnostics, AvailableTransitionDiagnostics, AvailableFlowDiagnostics
-from dtwin.digitaltwin.ocel.objects.ocel.converter import factory as ocel_converter_factory
+from dtween.available.available import AvailableTasks, AvailablePlaceDiagnostics, AvailableTransitionDiagnostics, AvailableFlowDiagnostics
+from dtween.digitaltwin.ocel.objects.ocel.converter import factory as ocel_converter_factory
 
 from dateutil import parser
 from flask import request

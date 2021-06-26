@@ -19,30 +19,31 @@ import pandas as pd
 import dash_table
 import dash
 from collections import OrderedDict
-from backend.param.constants import CVIEW_TITLE, DVIEW_TITLE, GLOBAL_FORM_SIGNAL, DVIEW_URL, PARSE_TITLE, DASHBOARD_TITLE, DASHBOARD_URL, JOBS_KEY, JOB_TASKS_KEY
+from backend.param.constants import CVIEW_TITLE, DVIEW_TITLE, GLOBAL_FORM_SIGNAL, DVIEW_URL, PARSE_TITLE, DASHBOARD_TITLE, DASHBOARD_URL, JOBS_KEY, JOB_TASKS_KEY, JSON
 
-from backend.util import add_job, run_task, forget_all_tasks, get_job_id, check_existing_job, read_global_signal_value, read_active_attribute_form, write_global_signal_value, no_update, transform_config_to_datatable_dict
+from backend.util import add_job, run_task, forget_all_tasks, get_job_id, check_existing_job, read_global_signal_value, read_active_attribute_form, write_global_signal_value, no_update, transform_config_to_datatable_dict, parse_contents
 from backend.tasks.tasks import get_remote_data, store_redis_backend
-from dtwin.available.available import AvailableTasks
-from dtwin.digitaltwin.ocpn.visualization import visualizer as ocpn_vis_factory
-from dtwin.digitaltwin.digitaltwin.operation import factory as oper_factory
+from dtween.available.available import AvailableTasks
+from dtween.digitaltwin.ocpn.visualization import visualizer as ocpn_vis_factory
+from dtween.digitaltwin.digitaltwin.operation import factory as oper_factory
 from flask import request
 from dateutil import parser
-from dtwin.digitaltwin.ocel.objects.ocel.importer import factory as ocel_import_factory
-from dtwin.digitaltwin.ocel.objects.mdl.preprocessor import factory as mdl_preprocess_factory
+from dtween.digitaltwin.ocel.objects.ocel.importer import factory as ocel_import_factory
+from dtween.digitaltwin.ocel.objects.mdl.preprocessor import factory as mdl_preprocess_factory
 from dash.dependencies import Input, Output, State, MATCH, ALL
-from dtwin.digitaltwin.digitaltwin.evaluation import factory as evaluation_factory
-from dtwin.infosystem.process.config import factory as config_factory
-from pm4pymdl.algo.mvp.utils import succint_mdl_to_exploded_mdl
+from dtween.digitaltwin.digitaltwin.evaluation import factory as evaluation_factory
+# from pm4pymdl.algo.mvp.utils import succint_mdl_to_exploded_mdl
+from ocpa.objects.log.importer.mdl.factory import succint_mdl_to_exploded_mdl
 
-connect_db_title = "Connect to Event Stream"
+connect_db_title = "Connect to Information System"
+load_ocpn_title = "load digital twin".title()
 start_title = "start".title()
 stop_title = "stop".title()
 reset_title = "reset".title()
 
 uploads = dbc.Row(
     [
-        dbc.Col(dcc.Upload(id="connect-db",
+        dbc.Col(dcc.Upload(id="upload-system-config",
                 children=button(connect_db_title, show_title_maker, show_button_id)), width="auto"),
     ], justify='start'
 )
@@ -72,7 +73,7 @@ sliders = dbc.Row(
 )
 
 buttons = [
-    button(DASHBOARD_TITLE, show_title_maker, show_button_id),
+    button(load_ocpn_title, show_title_maker, show_button_id),
     button(start_title, show_title_maker, show_button_id),
     button(stop_title, show_title_maker, show_button_id),
     button(reset_title, show_title_maker, show_button_id),
@@ -167,7 +168,8 @@ dashboard_view_content = dbc.Row(
     [
         dcc.Store(id='ocpn-dashboard-dot', storage_type='session', data=""),
         dcc.Store(id='token-map', storage_type='session'),
-        dcc.Store(id='db-dir', storage_type='session'),
+        dcc.Store(id='log-dir', storage_type='session'),
+        dcc.Store(id='config-dir', storage_type='session'),
         dcc.Store(id='start-time', storage_type='session'),
         dcc.Store(id='bin-size', storage_type='session'),
         dcc.Store(id='action-log', storage_type='session', data=[]),
@@ -254,7 +256,7 @@ def start_operation(n_start, n_stop, n_reset, disabled):
     elif button_id == show_button_id(reset_title):
         return True, str(datetime.datetime.now()), 0
     else:
-        return disabled, no_update(2)
+        return no_update(3)
 
 
 def group_item(name, index):
@@ -270,7 +272,7 @@ def group_item(name, index):
     Output('object-table', 'data'),
     Input("gv-dashboard", "selected"),
     State('token-map', 'data'),
-    State('db-dir', 'data'),
+    State('log-dir', 'data'),
 )
 def show_selected(value, token_map, filename):
     if value is not None and token_map is not None:
@@ -382,21 +384,23 @@ def show_selected(value, token_map, filename):
     State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
     # State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
     State('start-time', 'data'),
-    State('db-dir', 'data'),
+    State('log-dir', 'data'),
+    State('config-dir', 'data'),
     State('bin-size', 'data'),
     State('action-pattern-repository', 'data'),
     State('action-log', 'data'),
 )
-def run_operation(disabled, interval, n_intervals, value, old_value, control_jobs, start_time, filename, bin_size, action_pattern_repo, action_log):
+def run_operation(disabled, interval, n_intervals, value, old_value, control_jobs, start_time, log_dir, config_dir, bin_size, action_pattern_repo, action_log):
     if disabled == False and (old_value is not None or value is not None):
         if value is None:
             value = old_value
         # conn = sqlite3.connect(
-        #     "/Users/gyunam/Documents/DigitalTwin/src/dtwin/infosystem/database/eventstream.sqlite")
+        #     "/Users/gyunam/Documents/DigitalTwin/src/dtween/infosystem/database/eventstream.sqlite")
         # cur = conn.cursor()
         # limit = 200
-        print("streaming from {}".format(filename))
-        data = ocel_import_factory.apply(filename)
+        print("streaming from {}".format(log_dir))
+        print("configuration from {}".format(config_dir))
+        data = ocel_import_factory.apply(log_dir)
         event_df = data[0]
         start_timestamp = parser.parse(
             start_time) + datetime.timedelta(hours=interval/1000*n_intervals-bin_size)
@@ -442,9 +446,9 @@ def run_operation(disabled, interval, n_intervals, value, old_value, control_job
         operation_table_data = sublog.to_dict('records')
 
         # interval/1000 since dash uses milliseconds
-        event_df = succint_mdl_to_exploded_mdl.apply(event_df)
+        event_df = succint_mdl_to_exploded_mdl(event_df)
         action_log_at_t, exp_log = evaluation_factory.evaluate(
-            action_pattern_repo, dt, event_df, end_timestamp, interval/1000, n_intervals)
+            action_pattern_repo, dt, event_df, end_timestamp, interval/1000, n_intervals, config_dir)
         if len(action_log_at_t) != 0:
             action_log += action_log_at_t
 
@@ -458,15 +462,7 @@ def run_operation(disabled, interval, n_intervals, value, old_value, control_job
             className="mb-2"
         )
 
-        # result = log.to_json(orient="records")
-        # parsed = json.loads(result)
-        # return html.Div([
-        #                 html.P(json.dumps(parsed, indent=4))
-        #                 ]), \
-        #     control_jobs, json.dumps(token_map), \
-        #     end_timestamp.strftime("%Y-%m-%d, %H:%M:%S")
-
-        config = config_factory.read_config()
+        config = evaluation_factory.read_config(config_dir)
         configuration_table_data = transform_config_to_datatable_dict(
             config)
 
@@ -482,12 +478,20 @@ def run_operation(disabled, interval, n_intervals, value, old_value, control_job
 
 
 @ app.callback(
-    Output('db-dir', 'data'),
-    Input('connect-db', 'filename')
+    Output('log-dir', 'data'),
+    Output('config-dir', 'data'),
+    Input('upload-system-config', 'contents'),
+    State('log-dir', 'data'),
+    State('config-dir', 'data'),
 )
-def connect_to_db(filename):
-    _filename = "/Users/gyunam/Documents/DigitalTwin/src/dtwin/infosystem/simulation/simulated-logs.jsonocel"
-    return _filename
+def connect_to_system(content, old_log_dir, old_config_dir):
+    if content is not None:
+        data, success = parse_contents(content, JSON)
+        log_dir = data['dir-event-stream']
+        config_dir = data['dir-system-config']
+        return log_dir, config_dir
+    else:
+        return old_log_dir, old_config_dir
 
 
 @app.callback(
