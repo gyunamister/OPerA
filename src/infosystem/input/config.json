@@ -1,0 +1,7 @@
+{
+    "config": {
+        "Minimum-Order-Price": 1,
+        "Minimum-Notification-Price": 200,
+        "Minimum-Approval-Quantity": 7
+    }
+}

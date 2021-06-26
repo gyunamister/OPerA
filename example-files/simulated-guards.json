@@ -1,0 +1,24 @@
+{
+    "guards": [
+        {
+            "transition": "place_order",
+            "guard": "[order.price >= po-price]"
+        },
+        {
+            "transition": "send_notification",
+            "guard": "[order.price >= sn-price]"
+        },
+        {
+            "transition": "skip_send_notification",
+            "guard": "[order.price < sn-price]"
+        },
+        {
+            "transition": "check_availability",
+            "guard": "[item.quantity >= caw-qty]"
+        },
+        {
+            "transition": "check_availability_with_approval",
+            "guard": "[item.quantity < caw-qty]"
+        }
+    ]
+}

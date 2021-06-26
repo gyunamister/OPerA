@@ -1,0 +1,537 @@
+{
+    "ocel:global-event": {
+        "ocel:activity": "__INVALID__"
+    },
+    "ocel:global-object": {
+        "ocel:type": "__INVALID__"
+    },
+    "ocel:global-log": {
+        "ocel:attribute-names": [
+            "type",
+            "price"
+        ],
+        "ocel:object-types": [
+            "order",
+            "item",
+            "route"
+        ],
+        "ocel:version": "1.0",
+        "ocel:ordering": "timestamp"
+    },
+    "ocel:events": {
+        "1c8428e6-3ad8-44f0-b0a6-76027ddd6fe6": {
+            "ocel:activity": "place_order",
+            "ocel:timestamp": "2021-06-01 17:54:02",
+            "ocel:omap": [
+                "o0",
+                "i0a",
+                "i0b"
+            ],
+            "ocel:vmap": {
+                "resource": "po_machine"
+            }
+        },
+        "8c079fa8-1ef1-4292-97de-4fdf52663e9b": {
+            "ocel:activity": "place_order",
+            "ocel:timestamp": "2021-06-01 17:54:02",
+            "ocel:omap": [
+                "o1",
+                "i1a",
+                "i1b"
+            ],
+            "ocel:vmap": {
+                "resource": "po_machine"
+            }
+        },
+        "474c2762-fc32-400b-bccd-cb196370d3eb": {
+            "ocel:activity": "place_order",
+            "ocel:timestamp": "2021-06-01 17:54:02",
+            "ocel:omap": [
+                "o2",
+                "i2a",
+                "i2b"
+            ],
+            "ocel:vmap": {
+                "resource": "po_machine"
+            }
+        },
+        "baeff925-2009-44d1-a297-46713407e3cf": {
+            "ocel:activity": "place_order",
+            "ocel:timestamp": "2021-06-01 23:54:08",
+            "ocel:omap": [
+                "o3",
+                "i3a",
+                "i3b"
+            ],
+            "ocel:vmap": {
+                "resource": "po_machine"
+            }
+        },
+        "3bb2fc5e-3dac-40c4-9593-f4380b87d1b0": {
+            "ocel:activity": "send_invoice",
+            "ocel:timestamp": "2021-06-01 23:54:08",
+            "ocel:omap": [
+                "o0"
+            ],
+            "ocel:vmap": {
+                "resource": "si_machine"
+            }
+        },
+        "79c6e743-f484-4318-93e0-c45fc1874ebf": {
+            "ocel:activity": "send_invoice",
+            "ocel:timestamp": "2021-06-01 23:54:08",
+            "ocel:omap": [
+                "o1"
+            ],
+            "ocel:vmap": {
+                "resource": "si_machine"
+            }
+        },
+        "2c91bb6f-3296-4ce3-9c1c-1b9eb27a83ae": {
+            "ocel:activity": "send_invoice",
+            "ocel:timestamp": "2021-06-01 23:54:08",
+            "ocel:omap": [
+                "o2"
+            ],
+            "ocel:vmap": {
+                "resource": "si_machine"
+            }
+        },
+        "70f59677-99e8-4f16-935b-7f96f71691e2": {
+            "ocel:activity": "skip_send_notification",
+            "ocel:timestamp": "2021-06-01 23:54:08",
+            "ocel:omap": [
+                "o2"
+            ],
+            "ocel:vmap": {
+                "resource": null
+            }
+        },
+        "f65406eb-a594-4820-9716-bb645dc3363b": {
+            "ocel:activity": "check_availability",
+            "ocel:timestamp": "2021-06-01 23:54:08",
+            "ocel:omap": [
+                "i2a"
+            ],
+            "ocel:vmap": {
+                "resource": null
+            }
+        },
+        "2a274252-1ac3-4090-bb4e-7b9ad5d825fd": {
+            "ocel:activity": "check_availability",
+            "ocel:timestamp": "2021-06-01 23:54:08",
+            "ocel:omap": [
+                "i2b"
+            ],
+            "ocel:vmap": {
+                "resource": null
+            }
+        },
+        "77069535-7a7d-408a-92d7-3ab66007ae97": {
+            "ocel:activity": "pick_item",
+            "ocel:timestamp": "2021-06-02 02:54:11",
+            "ocel:omap": [
+                "i2a"
+            ],
+            "ocel:vmap": {
+                "resource": "pi_machine"
+            }
+        },
+        "639cdb22-30b5-4aa6-88b2-f6d0b1ce1f1a": {
+            "ocel:activity": "send_invoice",
+            "ocel:timestamp": "2021-06-02 05:54:14",
+            "ocel:omap": [
+                "o3"
+            ],
+            "ocel:vmap": {
+                "resource": "si_machine"
+            }
+        },
+        "57c557ab-2e0e-41f1-ae71-a607c1df64ea": {
+            "ocel:activity": "send_notification",
+            "ocel:timestamp": "2021-06-02 05:54:14",
+            "ocel:omap": [
+                "o0"
+            ],
+            "ocel:vmap": {
+                "resource": "sn_machine"
+            }
+        },
+        "525e58bc-d43a-4636-8863-fad317341863": {
+            "ocel:activity": "pick_item",
+            "ocel:timestamp": "2021-06-02 05:54:14",
+            "ocel:omap": [
+                "i2b"
+            ],
+            "ocel:vmap": {
+                "resource": "pi_machine"
+            }
+        },
+        "95aaea2d-86b7-42ea-ba93-2813ea35ffc9": {
+            "ocel:activity": "check_availability",
+            "ocel:timestamp": "2021-06-02 05:54:14",
+            "ocel:omap": [
+                "i0a"
+            ],
+            "ocel:vmap": {
+                "resource": null
+            }
+        },
+        "73f10dba-a16f-4db8-a3cf-33c0bf1322b1": {
+            "ocel:activity": "check_availability",
+            "ocel:timestamp": "2021-06-02 05:54:14",
+            "ocel:omap": [
+                "i0b"
+            ],
+            "ocel:vmap": {
+                "resource": null
+            }
+        },
+        "021dfcfc-73a5-41f8-9399-7f0ccc93df95": {
+            "ocel:activity": "pick_item",
+            "ocel:timestamp": "2021-06-02 08:54:17",
+            "ocel:omap": [
+                "i0a"
+            ],
+            "ocel:vmap": {
+                "resource": "pi_machine"
+            }
+        },
+        "3027ab94-c323-4154-a8fa-4b27e3942dd1": {
+            "ocel:activity": "send_notification",
+            "ocel:timestamp": "2021-06-02 11:54:20",
+            "ocel:omap": [
+                "o1"
+            ],
+            "ocel:vmap": {
+                "resource": "sn_machine"
+            }
+        },
+        "035f84b5-84a0-4ca5-b0a3-9ed7059e349f": {
+            "ocel:activity": "collect_payment",
+            "ocel:timestamp": "2021-06-02 11:54:20",
+            "ocel:omap": [
+                "o2"
+            ],
+            "ocel:vmap": {
+                "resource": "cp_machine"
+            }
+        },
+        "0dadac01-2a36-47dd-a5d2-38a5b4aad41d": {
+            "ocel:activity": "pick_item",
+            "ocel:timestamp": "2021-06-02 11:54:20",
+            "ocel:omap": [
+                "i0b"
+            ],
+            "ocel:vmap": {
+                "resource": "pi_machine"
+            }
+        },
+        "f95f03b1-d779-43f5-8f67-60925eea5451": {
+            "ocel:activity": "check_availability",
+            "ocel:timestamp": "2021-06-02 11:54:20",
+            "ocel:omap": [
+                "i1a"
+            ],
+            "ocel:vmap": {
+                "resource": null
+            }
+        },
+        "010d1e0d-e330-4cc7-a528-90db67195eb9": {
+            "ocel:activity": "check_availability",
+            "ocel:timestamp": "2021-06-02 11:54:20",
+            "ocel:omap": [
+                "i1b"
+            ],
+            "ocel:vmap": {
+                "resource": null
+            }
+        },
+        "0dce9607-7f34-4317-ac80-23e3a9ec8a7d": {
+            "ocel:activity": "start_route",
+            "ocel:timestamp": "2021-06-02 14:54:23",
+            "ocel:omap": [
+                "r2",
+                "i2a",
+                "i2b"
+            ],
+            "ocel:vmap": {
+                "resource": "sr_machine"
+            }
+        },
+        "27c2fd8a-aa43-447c-840c-33b38be419fb": {
+            "ocel:activity": "pick_item",
+            "ocel:timestamp": "2021-06-02 14:54:23",
+            "ocel:omap": [
+                "i1a"
+            ],
+            "ocel:vmap": {
+                "resource": "pi_machine"
+            }
+        },
+        "1e3c9a11-75a6-404c-8aa6-60e4fda70a46": {
+            "ocel:activity": "send_notification",
+            "ocel:timestamp": "2021-06-02 17:54:26",
+            "ocel:omap": [
+                "o3"
+            ],
+            "ocel:vmap": {
+                "resource": "sn_machine"
+            }
+        },
+        "749a4436-acab-411b-b154-8ead9306e2a5": {
+            "ocel:activity": "collect_payment",
+            "ocel:timestamp": "2021-06-02 17:54:26",
+            "ocel:omap": [
+                "o0"
+            ],
+            "ocel:vmap": {
+                "resource": "cp_machine"
+            }
+        },
+        "919a9012-56f5-45c8-826c-661aa7a9845e": {
+            "ocel:activity": "end_route",
+            "ocel:timestamp": "2021-06-02 17:54:26",
+            "ocel:omap": [
+                "r2",
+                "i2a",
+                "i2b"
+            ],
+            "ocel:vmap": {
+                "resource": "er_machine"
+            }
+        },
+        "440550ce-c3ad-41c4-83c9-794747bc2e25": {
+            "ocel:activity": "pick_item",
+            "ocel:timestamp": "2021-06-02 17:54:26",
+            "ocel:omap": [
+                "i1b"
+            ],
+            "ocel:vmap": {
+                "resource": "pi_machine"
+            }
+        },
+        "d48535a8-a449-4754-bd3c-ee17d73629c3": {
+            "ocel:activity": "start_route",
+            "ocel:timestamp": "2021-06-02 20:54:29",
+            "ocel:omap": [
+                "r0",
+                "i0a",
+                "i0b"
+            ],
+            "ocel:vmap": {
+                "resource": "sr_machine"
+            }
+        },
+        "f7030b63-fe97-4139-8baf-a8efe1d0037d": {
+            "ocel:activity": "check_availability_with_approval",
+            "ocel:timestamp": "2021-06-02 23:54:32",
+            "ocel:omap": [
+                "i3a"
+            ],
+            "ocel:vmap": {
+                "resource": "ap_machine"
+            }
+        },
+        "426b883f-b2af-4889-abc3-70c565240208": {
+            "ocel:activity": "collect_payment",
+            "ocel:timestamp": "2021-06-02 23:54:32",
+            "ocel:omap": [
+                "o1"
+            ],
+            "ocel:vmap": {
+                "resource": "cp_machine"
+            }
+        },
+        "45561fad-d04f-4d46-b2e7-3194ad3e4917": {
+            "ocel:activity": "end_route",
+            "ocel:timestamp": "2021-06-02 23:54:32",
+            "ocel:omap": [
+                "r0",
+                "i0a",
+                "i0b"
+            ],
+            "ocel:vmap": {
+                "resource": "er_machine"
+            }
+        },
+        "6075cb4c-3735-402f-8c7b-83f2b68a65a7": {
+            "ocel:activity": "check_availability",
+            "ocel:timestamp": "2021-06-02 23:54:32",
+            "ocel:omap": [
+                "i3b"
+            ],
+            "ocel:vmap": {
+                "resource": null
+            }
+        },
+        "16c1a94f-7c30-4654-b6c3-424057e86072": {
+            "ocel:activity": "start_route",
+            "ocel:timestamp": "2021-06-03 02:54:35",
+            "ocel:omap": [
+                "r1",
+                "i1a",
+                "i1b"
+            ],
+            "ocel:vmap": {
+                "resource": "sr_machine"
+            }
+        },
+        "df750d96-abde-42e1-b4ba-38706926be88": {
+            "ocel:activity": "pick_item",
+            "ocel:timestamp": "2021-06-03 02:54:35",
+            "ocel:omap": [
+                "i3a"
+            ],
+            "ocel:vmap": {
+                "resource": "pi_machine"
+            }
+        },
+        "76fd35fd-c348-4b7f-b1e9-decdde253b4e": {
+            "ocel:activity": "end_route",
+            "ocel:timestamp": "2021-06-03 05:54:38",
+            "ocel:omap": [
+                "r1",
+                "i1a",
+                "i1b"
+            ],
+            "ocel:vmap": {
+                "resource": "er_machine"
+            }
+        },
+        "b9a096a1-f838-414b-ae83-6476a00ea977": {
+            "ocel:activity": "pick_item",
+            "ocel:timestamp": "2021-06-03 05:54:38",
+            "ocel:omap": [
+                "i3b"
+            ],
+            "ocel:vmap": {
+                "resource": "pi_machine"
+            }
+        },
+        "863a31e5-7b68-49a4-933c-5896227afd24": {
+            "ocel:activity": "collect_payment",
+            "ocel:timestamp": "2021-06-03 11:54:44",
+            "ocel:omap": [
+                "o3"
+            ],
+            "ocel:vmap": {
+                "resource": "cp_machine"
+            }
+        },
+        "f1c5f4c2-42ce-4805-b56a-dd894ccfdaab": {
+            "ocel:activity": "start_route",
+            "ocel:timestamp": "2021-06-03 14:54:47",
+            "ocel:omap": [
+                "r3",
+                "i3a",
+                "i3b"
+            ],
+            "ocel:vmap": {
+                "resource": "sr_machine"
+            }
+        },
+        "3d529b35-336d-4b6d-9533-4ee31efce9bf": {
+            "ocel:activity": "end_route",
+            "ocel:timestamp": "2021-06-03 17:54:50",
+            "ocel:omap": [
+                "r3",
+                "i3a",
+                "i3b"
+            ],
+            "ocel:vmap": {
+                "resource": "er_machine"
+            }
+        }
+    },
+    "ocel:objects": {
+        "o0": {
+            "ocel:type": "order",
+            "ocel:ovmap": {
+                "price": 231
+            }
+        },
+        "i0a": {
+            "ocel:type": "item",
+            "ocel:ovmap": {
+                "ocel:quantity": 1
+            }
+        },
+        "i0b": {
+            "ocel:type": "item",
+            "ocel:ovmap": {
+                "ocel:quantity": 0
+            }
+        },
+        "r0": {
+            "ocel:type": "route",
+            "ocel:ovmap": {}
+        },
+        "o1": {
+            "ocel:type": "order",
+            "ocel:ovmap": {
+                "price": 244
+            }
+        },
+        "i1a": {
+            "ocel:type": "item",
+            "ocel:ovmap": {
+                "ocel:quantity": 4
+            }
+        },
+        "i1b": {
+            "ocel:type": "item",
+            "ocel:ovmap": {
+                "ocel:quantity": 3
+            }
+        },
+        "r1": {
+            "ocel:type": "route",
+            "ocel:ovmap": {}
+        },
+        "o2": {
+            "ocel:type": "order",
+            "ocel:ovmap": {
+                "price": 178
+            }
+        },
+        "i2a": {
+            "ocel:type": "item",
+            "ocel:ovmap": {
+                "ocel:quantity": 2
+            }
+        },
+        "i2b": {
+            "ocel:type": "item",
+            "ocel:ovmap": {
+                "ocel:quantity": 1
+            }
+        },
+        "r2": {
+            "ocel:type": "route",
+            "ocel:ovmap": {}
+        },
+        "o3": {
+            "ocel:type": "order",
+            "ocel:ovmap": {
+                "price": 236
+            }
+        },
+        "i3a": {
+            "ocel:type": "item",
+            "ocel:ovmap": {
+                "ocel:quantity": 8
+            }
+        },
+        "i3b": {
+            "ocel:type": "item",
+            "ocel:ovmap": {
+                "ocel:quantity": 1
+            }
+        },
+        "r3": {
+            "ocel:type": "route",
+            "ocel:ovmap": {}
+        }
+    }
+}

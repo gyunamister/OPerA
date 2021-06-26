@@ -30,8 +30,8 @@ venv.bak/
 *.pickle
 *.zip
 # *.png
-*.json
-*.jsonocel
+# *.json
+# *.jsonocel
 
 ## Vue.js frontend
 /src/.idea
