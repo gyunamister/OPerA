@@ -38,7 +38,7 @@ setuptools.setup(
         'matplotlib==3.3.3',
         'ipython==7.19.0',
         'ocpa',
-        'dotenv'
+        'python-dotenv'
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

@@ -263,8 +263,8 @@ Alternatives to Windows:
 pip install eventlet  
 set REDIS_LOCALHOST_OR_DOCKER=localhost
 set RABBIT_LOCALHOST_OR_DOCKER=localhost
-set RABBITMQ_USER=contect
-set RABBITMQ_PASSWORD=contect191! 
+set RABBITMQ_USER=dtween
+set RABBITMQ_PASSWORD=dtween92! 
 cd src/server/backend/tasks
 celery -A tasks worker --loglevel=INFO -P eventlet
 ```

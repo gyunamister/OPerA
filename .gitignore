@@ -1,6 +1,7 @@
 # IDE
 /.idea
 /.idea/inspectionProfiles
+/.vscode
 
 # Node
 /node_modules
@@ -11,7 +12,7 @@
 *.DS_Store
 
 # Environments
-.env
+# .env
 .venv
 env/
 venv/
@@ -70,4 +71,7 @@ venv.bak/
 /src/evaluation
 /src/infosystem/logs
 /src/infosystem/database
-/.vscode
+
+/build
+/dist
+/dtween.egg-info
