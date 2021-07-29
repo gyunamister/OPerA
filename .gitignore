@@ -75,3 +75,4 @@ venv.bak/
 /build
 /dist
 /dtween.egg-info
+/deprecated
