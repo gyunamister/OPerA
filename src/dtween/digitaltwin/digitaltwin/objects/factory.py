@@ -1,5 +1,7 @@
 from dtween.digitaltwin.digitaltwin.objects.obj import DigitalTwin
-from dtween.digitaltwin.ocpn.objects.obj import Marking
+# from dtween.digitaltwin.ocpn.objects.obj import Marking
+from ocpa.objects.oc_petri_net.obj import Marking
+
 from enum import Enum
 
 

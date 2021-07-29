@@ -17,7 +17,8 @@ from pm4py.algo.filtering.log.attributes import attributes_filter
 from pm4py.objects.petri.petrinet import PetriNet, Marking
 from pm4py.objects.petri.utils import add_arc_from_to
 from pm4py.objects.petri.utils import remove_place, remove_transition
-from dtween.digitaltwin.ocpn.objects.obj import ObjectCentricPetriNet
+# from dtween.digitaltwin.ocpn.objects.obj import ObjectCentricPetriNet
+from ocpa.objects.oc_petri_net.obj import ObjectCentricPetriNet
 from copy import deepcopy
 import uuid
 import pandas as pd
@@ -78,7 +79,7 @@ def apply(ocpn, df, parameters=None):
         aa = time.time()
         if debug:
             print(persp, "getting log")
-        log = algorithm.apply(df, persp, parameters=parameters)
+        log = projection_factory.apply(df, persp, parameters=parameters)
         if debug:
             print(len(log))
 
@@ -93,8 +94,6 @@ def apply(ocpn, df, parameters=None):
 
         diff_log += (bb - aa)
 
-        # filtered_log = variants_filter.apply_auto_filter(deepcopy(filtered_log), parameters={"decreasingFactor": 0.5})
-
         if debug:
             print(len(log))
             print(persp, "got log")
@@ -108,8 +107,9 @@ def apply(ocpn, df, parameters=None):
         if debug:
             print(persp, "got model")
 
+        # Diagonstics - Activity Counting
         xx1 = time.time()
-        activ_count = algorithm.apply(
+        activ_count = projection_factory.apply(
             df, persp, variant="activity_occurrence", parameters=parameters)
         if debug:
             print(persp, "got activ_count")
@@ -119,7 +119,6 @@ def apply(ocpn, df, parameters=None):
         variants_idx = variants_module.get_variants_from_log_trace_idx(log)
         # variants = variants_module.convert_variants_trace_idx_to_trace_obj(log, variants_idx)
         # parameters_tr = {PARAM_ACTIVITY_KEY: "concept:name", "variants": variants}
-
         if debug:
             print(persp, "got variants")
 
@@ -128,8 +127,8 @@ def apply(ocpn, df, parameters=None):
 
         if debug:
             print(persp, "done tbr")
-        element_statistics = performance_map.single_element_statistics(log, net, im,
-                                                                       aligned_traces, variants_idx)
+        element_statistics = performance_map.single_element_statistics(
+            log, net, im, aligned_traces, variants_idx)
 
         if debug:
             print(persp, "done element_statistics")
@@ -140,29 +139,24 @@ def apply(ocpn, df, parameters=None):
         aggregated_statistics = performance_map.aggregate_statistics(
             element_statistics)
 
-        if debug:
-            print(persp, "done aggregated_statistics")
+        # if debug:
+        #     print(persp, "done aggregated_statistics")
 
-        element_statistics_performance = performance_map.single_element_statistics(log, net, im,
-                                                                                   aligned_traces, variants_idx)
+        # element_statistics_performance = performance_map.single_element_statistics(log, net, im, aligned_traces, variants_idx)
 
-        if debug:
-            print(persp, "done element_statistics_performance")
+        # if debug:
+        #     print(persp, "done element_statistics_performance")
 
-        gg = time.time()
+        # gg = time.time()
 
-        aggregated_statistics_performance_min = performance_map.aggregate_statistics(element_statistics_performance,
-                                                                                     measure="performance",
-                                                                                     aggregation_measure="min")
-        aggregated_statistics_performance_max = performance_map.aggregate_statistics(element_statistics_performance,
-                                                                                     measure="performance",
-                                                                                     aggregation_measure="max")
-        aggregated_statistics_performance_median = performance_map.aggregate_statistics(element_statistics_performance,
-                                                                                        measure="performance",
-                                                                                        aggregation_measure="median")
-        aggregated_statistics_performance_mean = performance_map.aggregate_statistics(element_statistics_performance,
-                                                                                      measure="performance",
-                                                                                      aggregation_measure="mean")
+        aggregated_statistics_performance_min = performance_map.aggregate_statistics(
+            element_statistics, measure="performance", aggregation_measure="min")
+        aggregated_statistics_performance_max = performance_map.aggregate_statistics(
+            element_statistics, measure="performance", aggregation_measure="max")
+        aggregated_statistics_performance_median = performance_map.aggregate_statistics(
+            element_statistics, measure="performance", aggregation_measure="median")
+        aggregated_statistics_performance_mean = performance_map.aggregate_statistics(
+            element_statistics, measure="performance", aggregation_measure="mean")
 
         hh = time.time()
 
@@ -171,7 +165,7 @@ def apply(ocpn, df, parameters=None):
         if debug:
             print(persp, "done aggregated_statistics_performance")
 
-        group_size_hist = algorithm.apply(
+        group_size_hist = projection_factory.apply(
             df, persp, variant="group_size_hist", parameters=parameters)
 
         if debug:
@@ -187,27 +181,28 @@ def apply(ocpn, df, parameters=None):
                         if event["concept:name"] == trans.label:
                             occurrences[trans.label].add(
                                 (case_id, event["event_id"]))
-            # print(transition_fitness_per_trace[trans])
 
-        len_different_ids = {}
-        for act in occurrences:
-            len_different_ids[act] = len(set(x[1] for x in occurrences[act]))
+        # len_different_ids = {}
+        # for act in occurrences:
+        #     len_different_ids[act] = len(set(x[1] for x in occurrences[act]))
 
-        eid_acti_count = {}
-        for act in occurrences:
-            eid_acti_count[act] = {}
-            for x in occurrences[act]:
-                if not x[0] in eid_acti_count:
-                    eid_acti_count[act][x[0]] = 0
-                eid_acti_count[act][x[0]] = eid_acti_count[act][x[0]] + 1
-            eid_acti_count[act] = sorted(list(eid_acti_count[act].values()))
+        # eid_acti_count = {}
+        # for act in occurrences:
+        #     eid_acti_count[act] = {}
+        #     for x in occurrences[act]:
+        #         if not x[0] in eid_acti_count:
+        #             eid_acti_count[act][x[0]] = 0
+        #         eid_acti_count[act][x[0]] = eid_acti_count[act][x[0]] + 1
+        #     eid_acti_count[act] = sorted(list(eid_acti_count[act].values()))
 
         ii = time.time()
 
         diff_basic_stats += (ii - hh) + (xx2-xx1)
 
+        # Diagnostics on transitions
         diag["act_count"][persp] = activ_count
-        diag["aligned_traces"][persp] = aligned_traces
+
+        # diag["aligned_traces"][persp] = aligned_traces
         diag["place_fitness_per_trace"][persp] = place_fitness_per_trace
         diag["aggregated_statistics_frequency"][persp] = aggregated_statistics
         diag["aggregated_statistics_performance_min"][persp] = aggregated_statistics_performance_min
@@ -217,8 +212,8 @@ def apply(ocpn, df, parameters=None):
 
         diag["replay"][persp] = aggregated_statistics
         diag["group_size_hist"][persp] = group_size_hist
-        diag["act_count_replay"][persp] = len_different_ids
-        diag["group_size_hist_replay"][persp] = eid_acti_count
+        # diag["act_count_replay"][persp] = len_different_ids
+        # diag["group_size_hist_replay"][persp] = eid_acti_count
 
     diag["aggregated_statistics_performance_median_flattened"] = {}
     for persp in diag["aggregated_statistics_performance_median"]:
@@ -232,9 +227,96 @@ def apply(ocpn, df, parameters=None):
             diag["aggregated_statistics_performance_mean_flattened"][repr(
                 el)] = diag["aggregated_statistics_performance_mean"][persp][el]['label']
 
-    diag["computation_statistics"] = {"diff_log": diff_log, "diff_model": diff_model,
-                                      "diff_token_replay": diff_token_replay,
-                                      "diff_performance_annotation": diff_performance_annotation,
-                                      "diff_basic_stats": diff_basic_stats}
+    # diag["computation_statistics"] = {"diff_log": diff_log, "diff_model": diff_model,
+    #                                   "diff_token_replay": diff_token_replay,
+    #                                   "diff_performance_annotation": diff_performance_annotation,
+    #                                   "diff_basic_stats": diff_basic_stats}
+
+    # Transitions
+    diag["merged_act_count"] = merge_act_count(diag["act_count"])
+    merged_group_size_hist = merge_group_size_hist(diag["group_size_hist"])
+    diag["agg_merged_group_size_hist"] = agg_merged_group_size_hist(
+        merged_group_size_hist)
+    diag["merged_place_fitness"] = merge_place_fitness(
+        diag["place_fitness_per_trace"])
+
+    diag["merged_replay"] = merge_replay(diag["replay"])
+    print(diag["merged_replay"])
+    # Places
 
     return diag
+
+
+def merge_replay(replay):
+    merged_replay = dict()
+    for persp in replay.keys():
+        for elem in replay[persp].keys():
+            if type(elem) is PetriNet.Arc:
+                merged_replay[elem.__repr__()] = replay[persp][elem]
+    return merged_replay
+
+
+def merge_place_fitness(place_fitness_per_trace):
+    merged_place_fitness = dict()
+    for persp in place_fitness_per_trace.keys():
+        for pl in place_fitness_per_trace[persp]:
+            merged_place_fitness[pl.name] = dict()
+            merged_place_fitness[pl.name]['p'] = place_fitness_per_trace[persp][pl]['p']
+            merged_place_fitness[pl.name]['r'] = place_fitness_per_trace[persp][pl]['r']
+            merged_place_fitness[pl.name]['c'] = place_fitness_per_trace[persp][pl]['c']
+            merged_place_fitness[pl.name]['m'] = place_fitness_per_trace[persp][pl]['m']
+    return merged_place_fitness
+
+
+def merge_act_count(act_count):
+    merged_act_count = dict()
+    for persp in act_count.keys():
+        for act in act_count[persp].keys():
+            # persp_act_count = {persp: act_count[persp][act]}
+            persp_act_count = act_count[persp][act]
+            if act not in merged_act_count.keys():
+                merged_act_count[act] = persp_act_count
+            else:
+                continue
+    return merged_act_count
+
+
+def merge_group_size_hist(group_size_hist):
+    merged_group_size_hist = dict()
+    for persp in group_size_hist.keys():
+        for act in group_size_hist[persp].keys():
+            persp_group_size_hist = {persp: group_size_hist[persp][act]}
+            if act not in merged_group_size_hist.keys():
+                merged_group_size_hist[act] = persp_group_size_hist
+            else:
+                merged_group_size_hist[act].update(persp_group_size_hist)
+    return merged_group_size_hist
+
+
+def agg_merged_group_size_hist(merged_group_size_hist):
+    agg_merged_group_size_hist = dict()
+    for act in merged_group_size_hist.keys():
+        agg_merged_group_size_hist[act] = dict()
+        # median
+        agg_merged_group_size_hist[act]["median"] = dict()
+        for persp in merged_group_size_hist[act].keys():
+            agg_merged_group_size_hist[act]["median"][persp] = median(
+                merged_group_size_hist[act][persp])
+        # mean
+        agg_merged_group_size_hist[act]["mean"] = dict()
+        for persp in merged_group_size_hist[act].keys():
+            agg_merged_group_size_hist[act]["mean"][persp] = mean(
+                merged_group_size_hist[act][persp])
+        # max
+        agg_merged_group_size_hist[act]["max"] = dict()
+        for persp in merged_group_size_hist[act].keys():
+            agg_merged_group_size_hist[act]["max"][persp] = mean(
+                merged_group_size_hist[act][persp])
+
+        # min
+        agg_merged_group_size_hist[act]["min"] = dict()
+        for persp in merged_group_size_hist[act].keys():
+            agg_merged_group_size_hist[act]["min"][persp] = mean(
+                merged_group_size_hist[act][persp])
+
+    return agg_merged_group_size_hist

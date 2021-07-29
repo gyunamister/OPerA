@@ -2,6 +2,8 @@
     "config": {
         "Minimum-Order-Price": 1,
         "Minimum-Notification-Price": 200,
-        "Minimum-Approval-Quantity": 7
+        "Minimum-Approval-Quantity": 7,
+        "po-price": 5,
+        "sn-price": 335
     }
 }

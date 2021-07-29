@@ -22,8 +22,10 @@ from dtween.parsedata.objects.oclog import ObjectCentricLog, Trace
 from dtween.parsedata.parse import parse_csv, parse_json
 from dtween.digitaltwin.digitaltwin.objects.factory import get_digital_twin
 from dtween.digitaltwin.ocel.objects.mdl.importer import factory as mdl_import_factory
-from dtween.digitaltwin.ocpn.discovery import algorithm as discovery_factory
-from dtween.digitaltwin.diagnostics import algorithm as diagnostics_factory
+# from dtween.digitaltwin.ocpn.discovery import algorithm as discovery_factory
+from ocpa.algo.discovery.ocpn import algorithm as discovery_factory
+# from dtween.digitaltwin.diagnostics import algorithm as diagnostics_factory
+from ocpa.algo.conformance.token_based_replay import algorithm as diagnostics_factory
 import pickle
 import redis
 
@@ -103,8 +105,6 @@ def build_digitaltwin(self, data):
 def generate_diagnostics(self, ocpn, data, start_date=None, end_date=None):
     # df = mdl_import_factory.apply(data)
     if start_date != "" and end_date != "":
-        print(start_date)
-        print(end_date)
         # start_date = parser.parse(start_date).date()
         # end_date = parser.parse(end_date).date()
         # end_date += datetime.timedelta(days=1)

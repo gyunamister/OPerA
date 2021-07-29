@@ -19,8 +19,6 @@ def object_filter_by_timestamp(df, start_timestamp=None, end_timestamp=None, obj
                                                 >= start_timestamp]
     else:
         remove_end_start_df = remove_end_df
-
-    print(remove_end_start_df)
     object_ids = set(remove_end_start_df[object_type])
     object_ids = [x for x in object_ids if str(x) != 'nan']
     final_df = remove_end_df.loc[remove_end_df[object_type].isin(object_ids)]

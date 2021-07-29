@@ -2,7 +2,7 @@ import uuid
 import tempfile
 from graphviz import Digraph
 from pm4py.objects.petri.petrinet import PetriNet
-from dtween.digitaltwin.ocpn.objects.obj import ObjectCentricPetriNet
+from ocpa.objects.oc_petri_net.obj import ObjectCentricPetriNet
 from dtween.digitaltwin.diagnostics.util import equal_arc
 from statistics import median, mean
 

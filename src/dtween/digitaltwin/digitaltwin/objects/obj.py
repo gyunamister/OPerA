@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
-from dtween.digitaltwin.ocpn.objects.obj import ObjectCentricPetriNet
-from dtween.digitaltwin.ocpn.objects.obj import Marking
+# from dtween.digitaltwin.ocpn.objects.obj import ObjectCentricPetriNet
+from ocpa.objects.oc_petri_net.obj import ObjectCentricPetriNet
+from ocpa.objects.oc_petri_net.obj import Marking
+# from dtween.digitaltwin.ocpn.objects.obj import Marking
 from dtween.digitaltwin.valve.objects.obj import Valve
 from typing import List, Dict, Any, Optional
 

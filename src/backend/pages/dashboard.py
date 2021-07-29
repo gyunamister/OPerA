@@ -24,7 +24,8 @@ from backend.param.constants import CVIEW_TITLE, DVIEW_TITLE, GLOBAL_FORM_SIGNAL
 from backend.util import add_job, run_task, forget_all_tasks, get_job_id, check_existing_job, read_global_signal_value, read_active_attribute_form, write_global_signal_value, no_update, transform_config_to_datatable_dict, parse_contents
 from backend.tasks.tasks import get_remote_data, store_redis_backend
 from dtween.available.available import AvailableTasks
-from dtween.digitaltwin.ocpn.visualization import visualizer as ocpn_vis_factory
+# from dtween.digitaltwin.ocpn.visualization import visualizer as ocpn_vis_factory
+from ocpa.visualization.oc_petri_net import factory as ocpn_vis_factory
 from dtween.digitaltwin.digitaltwin.operation import factory as oper_factory
 from flask import request
 from dateutil import parser
@@ -32,6 +33,7 @@ from dtween.digitaltwin.ocel.objects.ocel.importer import factory as ocel_import
 from dtween.digitaltwin.ocel.objects.mdl.preprocessor import factory as mdl_preprocess_factory
 from dash.dependencies import Input, Output, State, MATCH, ALL
 from dtween.digitaltwin.digitaltwin.evaluation import factory as evaluation_factory
+from dtween.digitaltwin.digitaltwin.visualization import visualizer as dt_vis_factory
 # from pm4pymdl.algo.mvp.utils import succint_mdl_to_exploded_mdl
 from ocpa.objects.log.importer.mdl.factory import succint_mdl_to_exploded_mdl
 
@@ -213,7 +215,7 @@ def show_ocpn(pathname, value):
 
 @app.callback(
     Output('ocpn-dashboard-dot', 'data'),
-    Input(show_button_id(DASHBOARD_TITLE), 'n_clicks'),
+    Input(show_button_id(load_ocpn_title), 'n_clicks'),
     State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
     State(global_signal_id_maker(PARSE_TITLE), 'children'),
     State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
@@ -227,9 +229,9 @@ def load_ocpn(n, value, old_value, control_jobs, old_dot):
         log_hash, date = read_global_signal_value(value)
         dt = get_remote_data(user, log_hash, control_jobs,
                              AvailableTasks.BUILD.value)
-        gviz = ocpn_vis_factory.apply(dt.ocpn, parameters={"format": "svg"})
-        ocpn_dot = str(gviz)
-        return ocpn_dot
+        gviz = dt_vis_factory.apply(dt, parameters={"format": "svg"})
+        dt_dot = str(gviz)
+        return dt_dot
     return old_dot
 
 
@@ -250,13 +252,13 @@ def start_operation(n_start, n_stop, n_reset, disabled):
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
         button_value = ctx.triggered[0]['value']
     if button_id == show_button_id(start_title):
-        return False, str(datetime.datetime.now()), dash.no_update
+        if n_start is not None:
+            return False, str(datetime.datetime.now()), dash.no_update
     elif button_id == show_button_id(stop_title):
         return True, dash.no_update, dash.no_update
     elif button_id == show_button_id(reset_title):
         return True, str(datetime.datetime.now()), 0
-    else:
-        return no_update(3)
+    return no_update(3)
 
 
 def group_item(name, index):
@@ -326,48 +328,7 @@ def show_selected(value, token_map, filename):
         return no_update(4)
 
 
-# @app.callback(
-#     Output(global_signal_id_maker(DVIEW_TITLE), 'children'),
-#     Output(temp_jobs_store_id_maker(DVIEW_TITLE), 'data'),
-#     Output('ocpn-diagnostics-dot', 'data'),
-#     Input(show_button_id(DVIEW_TITLE), 'n_clicks'),
-#     State(global_signal_id_maker(HOME_TITLE), 'children'),
-#     State('jobs-store', 'data'),
-#     State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
-#     State(temp_jobs_store_id_maker(DVIEW_TITLE), 'data'),
-#     State('diagnostics-start', 'data'),
-#     State('diagnostics-end', 'data'),
-# )
-# def run_generate_diagnostics(n_show, value, data_jobs, control_jobs, temp_jobs, start_date, end_date):
-#     ctx = dash.callback_context
-#     if not ctx.triggered:
-#         button_id = 'No clicks yet'
-#     else:
-#         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-#         button_value = ctx.triggered[0]['value']
-
-#     if button_value is not None:
-#         if button_id == show_button_id(DVIEW_TITLE):
-#             log_hash, date = read_global_signal_value(value)
-#             user = request.authorization['username']
-#             log = get_remote_data(user, log_hash, data_jobs,
-#                                   AvailableTasks.UPLOAD.value)
-#             dt = get_remote_data(user, log_hash, control_jobs,
-#                                  AvailableTasks.BUILD.value)
-#             task_id = run_task(
-#                 control_jobs, log_hash, AvailableTasks.DIAGNIZE.value, generate_diagnostics, temp_jobs=temp_jobs, ocpn=dt.ocpn, data=log, start_date=start_date, end_date=end_date)
-#             diagnostics = get_remote_data(user, log_hash, control_jobs,
-#                                           AvailableTasks.DIAGNIZE.value)
-#             print("Use diagnostics: {}".format(diagnostics))
-#             gviz = ocpn_vis_factory.apply(dt.ocpn, diagnostics=diagnostics,
-#                                           variant="annotated_with_diagnostics", parameters={"format": "svg"})
-#             ocpn_diagnostics_dot = str(gviz)
-#             return write_global_signal_value([log_hash, task_id]), control_jobs, ocpn_diagnostics_dot
-#     return no_update(3)
-
-
 @app.callback(
-    # Output('live-operation-text', 'children'),
     Output('operation-table', 'columns'),
     Output('operation-table', 'data'),
     Output('configuration-table', 'data'),
@@ -382,7 +343,6 @@ def show_selected(value, token_map, filename):
     State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
     State(global_signal_id_maker(PARSE_TITLE), 'children'),
     State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
-    # State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
     State('start-time', 'data'),
     State('log-dir', 'data'),
     State('config-dir', 'data'),
@@ -394,10 +354,6 @@ def run_operation(disabled, interval, n_intervals, value, old_value, control_job
     if disabled == False and (old_value is not None or value is not None):
         if value is None:
             value = old_value
-        # conn = sqlite3.connect(
-        #     "/Users/gyunam/Documents/DigitalTwin/src/dtween/infosystem/database/eventstream.sqlite")
-        # cur = conn.cursor()
-        # limit = 200
         print("streaming from {}".format(log_dir))
         print("configuration from {}".format(config_dir))
         data = ocel_import_factory.apply(log_dir)
@@ -410,10 +366,6 @@ def run_operation(disabled, interval, n_intervals, value, old_value, control_job
             event_df, start_timestamp=start_timestamp, end_timestamp=end_timestamp)
         if len(sublog) == 0:
             print("no events")
-        # log = oper_factory.analyze_events(conn, cur, limit)
-        # oper_factory.delete_events(conn, cur, 5)
-
-        # read digitial twin
         user = request.authorization['username']
         log_hash, date = read_global_signal_value(value)
         # if log_hash not in dashboard_jobs[JOBS_KEY]:
@@ -512,14 +464,6 @@ def update_output(value):
     return 'The operation and state will be updated every {} hours'.format(abs(value[1])), abs(value[1])*1000
 
 
-# @app.callback(
-#     Output('object-info', 'children'),
-#     Input({'type': 'object-button', 'index': ALL}, 'value')
-# )
-# def display_output(value):
-#     print(value)
-#     return value
-
 @app.callback(
     Output({"type": "dynamic-output", "index": MATCH}, "children"),
     # Output({"type": "object-item", "index": MATCH}, "children"),
@@ -527,5 +471,4 @@ def update_output(value):
     State({"type": "object-item", "index": MATCH}, "children")
 )
 def clicked(n_click, children):
-    print(children)
     return children

@@ -2,7 +2,8 @@ import uuid
 import tempfile
 from graphviz import Digraph
 from pm4py.objects.petri.petrinet import PetriNet
-from dtween.digitaltwin.ocpn.objects.obj import ObjectCentricPetriNet
+# from dtween.digitaltwin.ocpn.objects.obj import ObjectCentricPetriNet
+from ocpa.objects.oc_petri_net.obj import ObjectCentricPetriNet
 
 from statistics import median, mean
 
@@ -63,16 +64,24 @@ def apply(dt, parameters=None):
         tr_count += 1
         if tr.name in guards.keys():
             guard = guards[tr.name]
+            if "<" in guard:
+                guard = guard.replace("<", "&lt;")
+            if ">" in guard:
+                guard = guard.replace(">", "&gt;")
         else:
             guard = None
         if tr.silent == True:
-            g.node(this_uuid, this_uuid, fontcolor="#FFFFFF", shape="box", xlabel=guard,
-                   fillcolor="#000000", style="filled", labelfontsize="18.0")
+            if guard is not None:
+                g.node(this_uuid, this_uuid, fontcolor="#FFFFFF", shape="box", xlabel='''<<FONT POINT-SIZE="11">%s</FONT>>''' % (guard),
+                       fillcolor="#000000", style="filled", labelfontsize="18.0")
+            else:
+                g.node(this_uuid, this_uuid, fontcolor="#FFFFFF", shape="box",
+                       fillcolor="#000000", style="filled", labelfontsize="18.0")
             all_objs[tr] = this_uuid
         elif tr.name not in trans_names:
             if guard is not None:
                 g.node(this_uuid, tr.name, shape="box",
-                       fontsize="36.0", xlabel=guard, labelfontsize="36.0")
+                       fontsize="36.0", xlabel='''<<FONT POINT-SIZE="18">%s</FONT>>''' % (guard), labelfontsize="36.0")
             else:
                 g.node(this_uuid, tr.name, shape="box",
                        fontsize="36.0", labelfontsize="36.0")

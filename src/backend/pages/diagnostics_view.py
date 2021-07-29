@@ -16,27 +16,44 @@ import dash_table
 import dash
 from collections import OrderedDict
 from backend.param.constants import CVIEW_TITLE, DVIEW_TITLE, GLOBAL_FORM_SIGNAL, DVIEW_URL, HOME_TITLE, PARSE_TITLE
+from dtween.util.util import DIAGNOSTICS_NAME_MAP
 from dtween.available.constants import COMP_OPERATORS
 
-from dtween.digitaltwin.ocpn.visualization import visualizer as ocpn_vis_factory
+# from dtween.digitaltwin.ocpn.visualization import visualizer as ocpn_vis_factory
+from ocpa.visualization.oc_petri_net import factory as ocpn_vis_factory
 from backend.util import add_job, run_task, forget_all_tasks, get_job_id, check_existing_job, read_global_signal_value, read_active_attribute_form, write_global_signal_value, no_update
 from backend.tasks.tasks import get_remote_data, generate_diagnostics
-from dtween.available.available import AvailableTasks, AvailablePlaceDiagnostics, AvailableTransitionDiagnostics, AvailableFlowDiagnostics
+from dtween.available.available import AvailableTasks, AvailablePlaceDiagnostics, AvailableTransitionDiagnostics, AvailableFlowDiagnostics, AvailableDiagnostics, DefaultDiagnostics
 from dtween.digitaltwin.ocel.objects.ocel.converter import factory as ocel_converter_factory
+import dash_core_components as dcc
 
 from dateutil import parser
 from flask import request
 
 define_condition_title = "Define Condition"
+diagnostics_buttion_title = "show diagnostics".title()
 
 buttons = [
-    button(DVIEW_TITLE, show_title_maker, show_button_id)
+    button(diagnostics_buttion_title, show_title_maker, show_button_id)
 ]
+
+available_diagonstics = [e.value for e in AvailableDiagnostics]
+default_diagonstics = [e.value for e in DefaultDiagnostics]
 
 diagnostics_date_picker = html.Div([
     dcc.Store(id='diagnostics-start', storage_type='session', data=""),
     dcc.Store(id='diagnostics-end', storage_type='session', data=""),
     dcc.Store(id='diagnostics-duration', storage_type='session'),
+    dcc.Store(id='diagnostics-list', storage_type='session'),
+    dbc.Checklist(
+        id='diagnostics-checklist',
+        options=[{'label': d, 'value': d} for d in available_diagonstics],
+        value=[d for d in default_diagonstics],
+        inline=True,
+        switch=True
+    ),
+    html.Hr(),
+    html.Div(id='output-container-date-picker-range'),
     dcc.DatePickerRange(
         id='my-date-picker-range',
         min_date_allowed=date(1995, 8, 5),
@@ -45,7 +62,7 @@ diagnostics_date_picker = html.Div([
         end_date=date(2017, 8, 25),
         display_format='YYYY-MM-DD',
     ),
-    html.Div(id='output-container-date-picker-range')
+    html.Hr(),
 ])
 
 diagnostics_input = dbc.FormGroup(
@@ -119,32 +136,6 @@ diagnostics_view_content = dbc.Row(
                 name_input,
                 button(define_condition_title,
                        show_title_maker, show_button_id)
-
-                # dbc.Row(
-                #     dbc.Col(html.H3("Define conditions"))
-                # ),
-                # dbc.Row(
-                #     dbc.Col(html.Div(id="selected-diagnostics"))
-                # ),
-                # dbc.Row(
-                #     dbc.Col(dcc.Dropdown(id='diagnostics-dropdown'))
-                # ),
-                # dbc.Row(
-                #     dbc.Col(dcc.Dropdown(id='comp-operators-dropdown',
-                #                          options=[{'label': x, 'value': x} for x in COMP_OPERATORS]))
-                # ),
-                # dbc.Row(
-                #     dbc.Col(dcc.Input(id="threshold", type="number",
-                #                       placeholder="Threshold"))
-                # ),
-                # dbc.Row(
-                #     dbc.Col(dcc.Input(id="condition-specification", type="text",
-                #                       placeholder="Enter Condition name"))
-                # ),
-                # dbc.Row(
-                #     dbc.Col(button(define_condition_title,
-                #                    show_title_maker, show_button_id))
-                # )
             ],
             width=4
         ),
@@ -232,7 +223,7 @@ def show_available_diagnostics(selected_node, selected_edge, object_types):
     Output(temp_jobs_store_id_maker(DVIEW_TITLE), 'data'),
     Output('ocpn-diagnostics-dot', 'data'),
     Output('object-types', 'data'),
-    Input(show_button_id(DVIEW_TITLE), 'n_clicks'),
+    Input(show_button_id(diagnostics_buttion_title), 'n_clicks'),
     State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
     State(global_signal_id_maker(PARSE_TITLE), 'children'),
     State(temp_jobs_store_id_maker(PARSE_TITLE), 'data'),
@@ -240,8 +231,9 @@ def show_available_diagnostics(selected_node, selected_edge, object_types):
     State(temp_jobs_store_id_maker(DVIEW_TITLE), 'data'),
     State('diagnostics-start', 'data'),
     State('diagnostics-end', 'data'),
+    State('diagnostics-checklist', 'value'),
 )
-def run_generate_diagnostics(n_show, value, old_value, data_jobs, control_jobs, temp_jobs, start_date, end_date):
+def run_generate_diagnostics(n_show, value, old_value, data_jobs, control_jobs, temp_jobs, start_date, end_date, diagnostics_list):
     ctx = dash.callback_context
     if not ctx.triggered:
         button_id = 'No clicks yet'
@@ -252,7 +244,7 @@ def run_generate_diagnostics(n_show, value, old_value, data_jobs, control_jobs, 
             value = old_value
 
     if button_value is not None:
-        if button_id == show_button_id(DVIEW_TITLE):
+        if button_id == show_button_id(diagnostics_buttion_title):
             log_hash, date = read_global_signal_value(value)
             user = request.authorization['username']
             data = get_remote_data(user, log_hash, data_jobs,
@@ -271,11 +263,13 @@ def run_generate_diagnostics(n_show, value, old_value, data_jobs, control_jobs, 
                 control_jobs, log_hash, AvailableTasks.DIAGNIZE.value, generate_diagnostics, temp_jobs=temp_jobs, ocpn=dt.ocpn, data=eve_df, start_date=start_date, end_date=end_date)
             diagnostics = get_remote_data(user, log_hash, control_jobs,
                                           AvailableTasks.DIAGNIZE.value)
-            print(diagnostics)
-            gviz = ocpn_vis_factory.apply(dt.ocpn, diagnostics=diagnostics,
-                                          variant="annotated_with_diagnostics", parameters={"format": "svg"})
+            parameters = dict()
+            for d in diagnostics_list:
+                parameters[DIAGNOSTICS_NAME_MAP[d]] = True
+            parameters['format'] = 'svg'
+            gviz = ocpn_vis_factory.apply(
+                dt.ocpn, diagnostics=diagnostics, variant="annotated_with_diagnostics", parameters=parameters)
             ocpn_diagnostics_dot = str(gviz)
-            print(ocpn_diagnostics_dot)
             return control_jobs, ocpn_diagnostics_dot, object_types
     return no_update(3)
 

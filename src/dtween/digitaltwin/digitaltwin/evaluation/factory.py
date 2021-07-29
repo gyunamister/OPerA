@@ -2,11 +2,10 @@ import pandas as pd
 import datetime
 from dateutil import parser
 
-from dtween.digitaltwin.diagnostics import algorithm as diagnostics_factory
+from ocpa.algo.conformance.token_based_replay import algorithm as diagnostics_factory
 from dtween.digitaltwin.ocel.objects.mdl.preprocessor import factory as mdl_preprocess_factory
-
-from dtween.util.util import DIAGNOSTICS_MAP, OPS_MAP, DIAGNOSTICS_FILTER_MAP
 from dtween.available.constants import EVENT_FILTER, OBJECT_FILTER
+from dtween.util.util import REPLAY_DIAGNOSTICS_MAP, DIAGNOSTICS_FILTER_MAP, OPS_MAP
 
 import json
 
@@ -30,8 +29,9 @@ def gen_diagnostics_scheme(action_pattern_repo):
     for ap in action_pattern_repo:
         diag_dur = ap["condition"]["cond_duration"]
         cond_type = ap["condition"]["cond_type"]
-        diag_type = DIAGNOSTICS_MAP[cond_type]
-        diag_filter_type = DIAGNOSTICS_FILTER_MAP[diag_type]
+        diag_type = REPLAY_DIAGNOSTICS_MAP[cond_type]
+        # diag_filter_type = DIAGNOSTICS_FILTER_MAP[diag_type]
+        diag_filter_type = EVENT_FILTER
         if diag_dur not in diagnostics_scheme:
             diagnostics_scheme[diag_dur] = {}
             diagnostics_scheme[diag_dur][diag_type] = diag_filter_type
@@ -51,19 +51,16 @@ def gen_diagnostics_records(action_pattern_repo, dt, df, current_timestamp, inte
         diag_end_timestamp = current_timestamp
         print("Diagnostics start at {} and ends at {}".format(
             diag_start_timestamp, diag_end_timestamp))
-        # print("df", df)
         # diagnostics after event filtering
         event_filtered_df = mdl_preprocess_factory.filter_by_timestamp(
             df, start_timestamp=diag_start_timestamp, end_timestamp=diag_end_timestamp)
         event_filtered_diagnostics = diagnostics_factory.apply(
             dt.ocpn, event_filtered_df)
-        # print("event_filtered_df: ", event_filtered_df)
 
         # diagnostics after object filtering
         # TODO at the moment hard-coded to "order" type, but object graph concept should be used to be generalized.
         object_filtered_df = mdl_preprocess_factory.object_filter_by_timestamp(
             df, start_timestamp=diag_start_timestamp, end_timestamp=diag_end_timestamp, object_type="order")
-        # print("object_filtered_df: ", object_filtered_df)
         object_filtered_diagnostics = diagnostics = diagnostics_factory.apply(
             dt.ocpn, object_filtered_df)
         diagnostics = {}
@@ -74,7 +71,6 @@ def gen_diagnostics_records(action_pattern_repo, dt, df, current_timestamp, inte
             elif diag_type_filter == OBJECT_FILTER:
                 diagnostics[diag_type] = object_filtered_diagnostics[diag_type]
         diagnostics_records[dur] = diagnostics
-        print(diagnostics)
     return diagnostics_records
 
 
@@ -104,21 +100,21 @@ def evaluate_condition(diagnostics_records, condition):
     dur = condition["cond_duration"]
     diag = diagnostics_records[dur]
     cond_type = condition["cond_type"]
-    diag_type = DIAGNOSTICS_MAP[cond_type]
+    diag_type = REPLAY_DIAGNOSTICS_MAP[cond_type]
     operator = condition["cond_operator"]
     threshold = condition["cond_threshold"]
     el = condition["cond_element"]
     cond_name = condition["cond_name"]
-    if diag[diag_type] == "act_count":
-        if el not in diag[diag_type]['item'].keys():
-            return False, "%s cannot be measured" % (cond_name), None
-        else:
-            diag_val = diag[diag_type]['item'][el]
+    # if diag[diag_type] == "act_count":
+    #     if el not in diag[diag_type]['item'].keys():
+    #         return False, "%s cannot be measured" % (cond_name), None
+    #     else:
+    #         diag_val = diag[diag_type]['item'][el]
+    # else:
+    if el not in diag[diag_type].keys():
+        return False, "%s cannot be measured" % (cond_name), None
     else:
-        if el not in diag[diag_type].keys():
-            return False, "%s cannot be measured" % (cond_name), None
-        else:
-            diag_val = diag[diag_type][el]
+        diag_val = diag[diag_type][el]
     # performance in seconds to hour
     if 's' in str(diag_val):
         diag_val = float(diag_val[:-1])/60

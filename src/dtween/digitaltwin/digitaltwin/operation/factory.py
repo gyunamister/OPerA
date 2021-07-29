@@ -17,11 +17,6 @@ def apply(ocpn, log, marking, variant=PROJECTION, parameters=None):
 def analyze_events(conn, cur, limit):
     query = "SELECT * FROM events ORDER BY event_timestamp ASC LIMIT {}".format(
         limit)
-    # cur.execute("SELECT * FROM events ORDER BY event_timestamp ASC")
-    # rows = cur.fetchall()
-
-    # for row in rows:
-    #     print(row)
 
     df = pd.read_sql_query(query, conn)
     del df['index']

@@ -99,55 +99,9 @@ control_view_content = dbc.Row(
         ),
         dbc.Col(
             [
-                # dbc.Row(
-                #     dbc.Col(html.H3("Guards"))
-                # ),
-                # dbc.Row(
-                #     dbc.Col(dash_table.DataTable(
-                #         id='guard-table',
-                #         columns=[
-                #             {'id': 'transition', 'name': 'transition'},
-                #             {'id': 'guard', 'name': 'guard',
-                #              'presentation': 'dropdown'},
-                #         ],
-                #         editable=True
-                #     ))
-                # ),
-                # dbc.Row(
-                #     dbc.Col(button(apply_guard_title,
-                #                    show_title_maker, show_button_id))
-                # ),
                 guards_form,
                 html.Hr(),
                 valves_form
-                # dbc.Row(
-                #     dbc.Col(html.H3("Valves"))
-                # ),
-                # # dbc.Row(
-                # #     dbc.Col(button(apply_configuration_title,
-                # #                    show_title_maker, show_button_id)),
-                # # ),
-                # dbc.Row(
-                #     dbc.Col(dcc.Dropdown(id='valve-dropdown'))
-                # ),
-                # dbc.Row(
-                #     dbc.Col((dcc.Slider(id='valve-slider'))
-                #             ),
-                # ),
-                # dbc.Row(
-                #     dbc.Col(html.Div(id='current-valve-value')
-                #             ),
-                # ),
-                # dbc.Row(
-                #     dbc.Col(dcc.Input(id="action-specification", type="text",
-                #                       placeholder="Enter Action name"))
-                # ),
-                # dbc.Row(
-                #     [
-                #         dbc.Col(button(define_action_title,
-                #                        show_title_maker, show_button_id))
-                #     ]
-                # ),
             ],
             width=4
         ),
@@ -176,14 +130,6 @@ def show_ocpn(pathname, value):
     return no_update(2)
 
 
-# @app.callback(
-#     [Output("gv", "dot_source"), Output("gv", "engine")],
-#     [Input("input", "value"), Input("engine", "value")],
-# )
-# def display_output(value, engine):
-#     return value, engine
-
-
 @ app.callback(
     Output("selected", "children"),
     Input("gv", "selected")
@@ -191,40 +137,6 @@ def show_ocpn(pathname, value):
 def show_selected(value):
     return html.Div(value)
 
-
-# @app.callback(
-#     Output('confirm-guard-update', 'displayed'),
-#     Output('ocpn-dot', 'data'),
-#     Input('submit-button', 'n_clicks'),
-#     Input('guard-table', 'data'),
-#     State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
-#     State('jobs-store', 'data'),
-# )
-# def display_confirm(n_clicks, value, jobs):
-#     if n_clicks:
-#         log_hash, date = read_global_signal_value(value)
-#         user = request.authorization['username']
-#         guards = transform_to_guards(data)
-#         dt = get_remote_data(user, log_hash, jobs,
-#                              AvailableTasks.BUILD.value)
-#         dt = update_guards(dt, guards)
-#         gviz = dt_vis_factory.apply(dt, parameters={"format": "svg"})
-#         dt_dot = str(gviz)
-#         return True, dt_dot
-#     return False, dt_dot
-
-
-# @app.callback(
-#     [
-#         Input('submit-button', 'n_clicks'),
-#         Input('guard-table', 'data')
-#     ],
-#     [
-#         State('submit-button', 'n_clicks')
-#     ])
-# def update_datatable(n_clicks):
-#     if n_clicks:
-#         print(data)
 
 @ app.callback(
     Output(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
@@ -257,6 +169,7 @@ def run_build_digitaltwin(n_discover, n_guard, guards, valves, value, old_value,
             user = request.authorization['username']
             data = get_remote_data(user, log_hash, data_jobs,
                                    AvailableTasks.PARSE.value)
+
             eve_df, obj_df = ocel_converter_factory.apply(data)
             task_id = run_task(
                 data_jobs, log_hash, AvailableTasks.BUILD.value, build_digitaltwin, temp_jobs=temp_jobs, data=eve_df)
@@ -275,41 +188,8 @@ def run_build_digitaltwin(n_discover, n_guard, guards, valves, value, old_value,
             task_id = run_task(
                 temp_jobs, log_hash, AvailableTasks.BUILD.value, store_redis_backend, data=dt)
             gviz = dt_vis_factory.apply(dt, parameters={"format": "svg"})
-            print(gviz)
             dt_dot = str(gviz)
             return temp_jobs, dt_dot
-        # elif button_id == show_button_id(apply_configuration_title):
-        #     log_hash, date = read_global_signal_value(value)
-        #     user = request.authorization['username']
-        #     dt = get_remote_data(user, log_hash, temp_jobs,
-        #                          AvailableTasks.BUILD.value)
-        #     config = {}
-        #     for name, spec in valves.items():
-        #         config[name] = spec['default']
-        #     dt.config = config
-        #     task_id = run_task(
-        #         temp_jobs, log_hash, AvailableTasks.BUILD.value, store_redis_backend, data=dt)
-        #     dt2 = get_remote_data(user, log_hash, temp_jobs,
-        #                           AvailableTasks.BUILD.value)
-        #     print(dt2.config)
-        #     gviz = dt_vis_factory.apply(dt, parameters={"format": "svg"})
-        #     dt_dot = str(gviz)
-        #     return temp_jobs, dt_dot
-
-    # df = mdl_importer.apply(
-    #     "/Users/gyunam/Documents/DigitalTwin/example_logs/mdl/order_management.mdl")
-    # ocpn = discovery_factory.apply(df)
-
-    # dt = get_digital_twin(ocpn, [], [])
-
-    # df = get_remote_data(user, log_hash, jobs, AvailableTasks.UPLOAD.value)
-    # print(df)
-    # loc, res = set_special_attributes(location, resource)
-    # task_id = run_task(jobs, log_hash, AvailableTasks.PARSE.value, parse_data, temp_jobs,
-    #                    data=df,
-    #                    data_type=CSV,
-    #                    resource=res,
-    #                    location=loc)
     return no_update(2)
 
 
@@ -342,13 +222,11 @@ def update_guard_table(guards):
     State('guard-store', 'data')
 )
 def upload_guards(content, old_guards):
-    print("upload1")
     if content is not None:
         data, success = parse_contents(content, JSON)
         guards = data['guards']
         return guards
     else:
-        print(old_guards)
         return old_guards
 
 
@@ -363,7 +241,6 @@ def upload_valves(content, old_valves):
         valves = data['valves']
         return valves
     else:
-        print(old_valves)
         return old_valves
 
 
@@ -404,11 +281,9 @@ def change_valve(value):
     Input('valve-store', 'data')
 )
 def update_valve(valves):
-    print("valve updating", valves)
     if valves is not None:
         options = [{'label': name, 'value': name}
                    for name, value in valves.items()]
-        print("dropdown updated", options)
         return options, options[0]['value']
     else:
         return no_update(2)
@@ -429,7 +304,6 @@ def update_output(n, value, valve_name, action_name, action_repo):
             valve_name, value)
         action_repo.append(
             {'Name': action_name, 'Valve': valve_name, "Value": value, "Expression": expression})
-        print(action_repo)
         return True, action_repo
     else:
         return False, action_repo

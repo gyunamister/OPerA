@@ -39,8 +39,8 @@ jobs_title_hidden = "hidden-jobs"
 upload_table_title = 'all rows'
 parse_title = 'parse'
 goto_title = 'Control view'
-remove_jobs_title = 'remove variants'
-start_from_last_job = 'selected variant'
+remove_jobs_title = 'remove digital twins'
+start_from_last_job = 'selected digital twin'
 selected_attribute_form = 'selected-attribute-selection'
 
 default_attribute_layout = [
@@ -129,7 +129,7 @@ upload_tab_content = card(
 
 jobs_tab_content = card(
     [
-        single_row(html.H2("Variants Dashboard")),
+        single_row(html.H2("Digital Twin Dashboard")),
         dbc.Row([dbc.Col(button(start_from_last_job,
                                 collapse_title_maker,
                                 collapse_button_id)),
@@ -140,7 +140,7 @@ jobs_tab_content = card(
     ])
 
 # Page layout
-page_layout = container("Action-Oriented Process Mining Using Digital Twins",
+page_layout = container("Digital Twin of An Organization Based on Action-Oriented Process Mining",
                         [
                             dbc.Tabs([
                                 dbc.Tab(upload_tab_content,
@@ -407,13 +407,13 @@ def update_home_output(n, value, radio_value, at, jobs, nonactive, active, init,
 
 
 # Page layout
-page_layout = container("Action-oriented Process Mining Using Digital Twins",
+page_layout = container("Digital Twin of An Organization Based on Action-Oriented Process Mining",
                         [
                             dbc.Tabs([
                                 dbc.Tab(upload_tab_content,
                                         label="Upload", tab_id='upload'),
                                 dbc.Tab(jobs_tab_content,
-                                        label="Jobs", tab_id='jobs')
+                                        label="Digital Twins", tab_id='jobs')
                             ], id='home-tabs')
                         ])
 
@@ -470,7 +470,6 @@ def run_parse_log(n, children, jobs, temp_jobs, form):
             oc_data.vmap_param = json_param
             task_id = run_task(jobs, log_hash, AvailableTasks.PARSE.value, store_redis_backend, temp_jobs,
                                data=oc_data)
-        print(write_global_signal_value([log_hash, task_id]))
         return write_global_signal_value([log_hash, task_id]), jobs, form
     return no_update(3)
 
@@ -503,7 +502,7 @@ def init_jobs(n, jobs, jobs1, jobs2, jobs3, jobs4, jobs5, jobs6, jobs7, jobs8, j
         # Forget all the celery task results in the redis results backend associated with a stored job
         for job in jobs_list:
             forget_all_tasks(jobs)
-        return tuple([True, True, None] + [True] * 15)
+        return tuple([True, True, None] + [True] * 20)
     else:
         return tuple([dash.no_update] * 23)
 

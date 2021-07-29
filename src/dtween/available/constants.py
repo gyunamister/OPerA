@@ -1,3 +1,5 @@
+
+
 # We simplify the different lengths of months and years
 HOURS_IN_DAY = 24
 HOURS_IN_WEEK = 7 * HOURS_IN_DAY

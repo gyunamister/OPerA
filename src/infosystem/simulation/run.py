@@ -49,7 +49,6 @@ def setup(env, file_name, t_inter):
         process_instance = random_process_instance(i)
         record_process_instance(file_name, process_instance)
         config = config_factory.read_config(args['config'])
-        print(config)
         env.process(order_management(
             env, config, act_repo, process_instance, file_name))
 
@@ -66,7 +65,6 @@ def setup(env, file_name, t_inter):
         process_instance = random_process_instance(i)
         record_process_instance(file_name, process_instance)
         config = config_factory.read_config(args['config'])
-        print(config)
         env.process(order_management(
             env, config, act_repo, process_instance, file_name))
 
@@ -84,8 +82,7 @@ def order_management(env, config, act_repo, process_instance, file_name):
         obj, next_activity, next_machine, oids = control_flow_factory.apply(
             config, process_instance)
         if next_activity is not None:
-            print("{} - {} - {}".format(next_activity,
-                                        process_instance.pid, next_machine))
+            # print("{} - {} - {}".format(next_activity,process_instance.pid, next_machine))
             # with getattr(act_repo, next_machine).request() as request:
             #     yield request
             yield env.process(getattr(act_repo, next_activity)(obj))
