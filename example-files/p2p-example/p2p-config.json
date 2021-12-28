@@ -1,0 +1,63 @@
+{
+    "valves": {
+        "min_planned_delivery_days": 5,
+        "max_price_diff": 200,
+        "min_order_quantity": 5,
+        "max_quantity_diff": 5,
+        "max_amount_diff": 10,
+        "max_assigned_amount_diff": 10,
+        "max_issue_quantity_diff": 5
+    },
+    "write_operations": {
+        "w1": {
+            "tr_name": "Plan Purchase Requisition",
+            "object_type": "Material",
+            "attr_name": "planned_delivery_days"
+        },
+        "w2": {
+            "tr_name": "Create Purchase Requisition",
+            "object_type": "Material",
+            "attr_name": "net_price"
+        },
+        "w3": {
+            "tr_name": "Create Purchase Requisition",
+            "object_type": "Material",
+            "attr_name": "effective_price"
+        },
+        "w4": {
+            "tr_name": "Plan Goods Issue",
+            "object_type": "Material",
+            "attr_name": "diff_issue"
+        },
+        "w5": {
+            "tr_name": "Create Purchase Requisition",
+            "object_type": "Material",
+            "attr_name": "quantity"
+        },
+        "w6": {
+            "tr_name": "Verify Material",
+            "object_type": "Material",
+            "attr_name": "verified"
+        },
+        "w7": {
+            "tr_name": "Receive Goods",
+            "object_type": "GoodsReceipt",
+            "attr_name": "diff_quantity"
+        },
+        "w8": {
+            "tr_name": "Receive Invoice",
+            "object_type": "Invoice",
+            "attr_name": "diff_amount"
+        },
+        "w9": {
+            "tr_name": "Issue Invoice Receipt",
+            "object_type": "Invoice",
+            "attr_name": "diff_assigned_amount"
+        },
+        "w10": {
+            "tr_name": "",
+            "object_type": "Material",
+            "attr_name": "quality"
+        }
+    }
+}

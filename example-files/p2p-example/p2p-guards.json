@@ -1,0 +1,28 @@
+{
+    "guards": [
+        {
+            "transition": "Create Purchase Requisition",
+            "guard": "[Material.planned_delivery_days >= {min_planned_delivery_days}]"
+        },
+        {
+            "transition": "Create Purchase Order",
+            "guard": "[Material.net_price - Material.effective_price <= {max_price_diff}, Material.quantity >= {min_order_quantity}]"
+        },
+        {
+            "transition": "Issue Goods Receipt",
+            "guard": "[GoodsReceipt.diff_quantity <= {max_quantity_diff}]"
+        },
+        {
+            "transition": "Issue Invoice Receipt",
+            "guard": "[Invoice.diff_amount <= {max_amount_diff}]"
+        },
+        {
+            "transition": "Clear Invoice",
+            "guard": "[Invoice.diff_assigned_amount <= {max_assigned_amount_diff}]"
+        },
+        {
+            "transition": "Goods Issue",
+            "guard": "[Mateiral.diff_issue <= {max_issue_quantity_diff}]"
+        }
+    ]
+}

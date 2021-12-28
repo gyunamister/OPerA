@@ -49,5 +49,6 @@ GUARD = 'guard'
 
 COMP_OPERATORS = ['>', '=', '<', '>=', '<=', '!=']
 
+
 OBJECT_FILTER = 'object-filter'
 EVENT_FILTER = 'event-filter'

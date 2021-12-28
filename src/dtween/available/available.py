@@ -11,6 +11,31 @@ def get_simple_available_from_name(name, default, available):
     return default
 
 
+class AvailablePerformanceMetric(Enum):
+    THROUGHPUT_TIME = 'throughput time'.title()
+    SOJOURN_TIME = 'sojourn time'.title()
+    # SERVICE_TIME = 'service time'.title()
+    WAITING_TIME = 'waiting time'.title()
+    SYNCRONIZATION_TIME = 'synchronization time'.title()
+    COHERENT_SYNC_TIME = 'coherent synchronization time'.title()
+    INHERENT_SYNC_TIME = 'inherent synchronization time'.title()
+    ABS_FREQ = 'absolute frequency'.title()
+    OBJECT_FREQ = 'object frequency'.title()
+    # COMPLETE_FREQ = 'complete frequency'.title()
+    # ONGOING_FREQ = 'ongoing frequency'.title()
+    OBJECT_TYPE_FREQ = 'object type frequency'.title()
+    INTERACTING_ACT_FREQ = 'interacting activity frequency'.title()
+
+
+class AvailableAggregators(Enum):
+    UNDEFINED = ""
+    AVG = 'average'.title()
+    MED = 'median'.title()
+    STD = 'standard deviation'.title()
+    MIN = 'minimum'.title()
+    MAX = 'maximum'.title()
+
+
 class DefaultDiagnostics(Enum):
     ACT_FREQ = 'activity frequency'.title()
     FLOW_FREQ = 'flow frequency'.title()
@@ -47,6 +72,58 @@ class AvailableDiagnostics(Enum):
     TOTAL_LOGMOVE = 'tot. move on log'.title()
     TOTAL_REWORK = 'tot. rework'.title()
     TOTAL_MODELMOVE = 'tot. move on model'.title()
+    AVG_THROUGHPUT_TIME = 'avg. throughput time'.title()
+    MED_THROUGHPUT_TIME = 'med. throughput time'.title()
+    MIN_THROUGHPUT_TIME = 'min. throughput time'.title()
+    MAX_THROUGHPUT_TIME = 'max. throughput time'.title()
+    AVG_TOTAL_SERVICE_TIME = 'avg. total service time'.title()
+    MED_TOTAL_SERVICE_TIME = 'med. total service time'.title()
+    MIN_TOTAL_SERVICE_TIME = 'min. total service time'.title()
+    MAX_TOTAL_SERVICE_TIME = 'max. total service time'.title()
+
+
+class AvailableConfObjImpact(Enum):
+    NUM_IMPACTED_OBJECTS = 'number of impacted object types'.title()
+
+
+class AvailableConfFuncImpact(Enum):
+    NUM_IMPACTED_FUNCTIONS = 'number of impacted functions'.title()
+
+
+class AvailableRunObjImpact(Enum):
+    NUM_IMPACTED_OBJECT_INSTANCES = 'number of impacted object instances'.title()
+
+
+class AvailableRunFuncImpact(Enum):
+    NUM_IMPACTED_FUNCTION_INSTANCES = 'number of impacted function instances'.title()
+
+
+class AvailableObjPerformanceMetric(Enum):
+    AVG_THROUGHPUT_TIME = 'avg. throughput time'.title()
+    MED_THROUGHPUT_TIME = 'med. throughput time'.title()
+    MIN_THROUGHPUT_TIME = 'min. throughput time'.title()
+    MAX_THROUGHPUT_TIME = 'max. throughput time'.title()
+    AVG_TOTAL_SERVICE_TIME = 'avg. total service time'.title()
+    MED_TOTAL_SERVICE_TIME = 'med. total service time'.title()
+    MIN_TOTAL_SERVICE_TIME = 'min. total service time'.title()
+    MAX_TOTAL_SERVICE_TIME = 'max. total service time'.title()
+
+
+class AvailableFuncPerformanceMetric(Enum):
+    AVG_SOJOURN_TIME = 'avg. sojourn time'.title()
+    MED_SOJOURN_TIME = 'med. sojourn time'.title()
+    MIN_SOJOURN_TIME = 'min. sojourn time'.title()
+    MAX_SOJOURN_TIME = 'max. sojourn time'.title()
+    AVG_SERVICE_TIME = 'avg. service time'.title()
+    MED_SERVICE_TIME = 'med. service time'.title()
+    MIN_SERVICE_TIME = 'min. service time'.title()
+    MAX_SERVICE_TIME = 'max. service time'.title()
+    AVG_WAITING_TIME = 'avg. waiting time'.title()
+    MED_WAITING_TIME = 'med. waiting time'.title()
+    MIN_WAITING_TIME = 'min. waiting time'.title()
+    MAX_WAITING_TIME = 'max. waiting time'.title()
+    ACT_FREQ = 'activity frequency'.title()
+    FLOW_FREQ = 'flow frequency'.title()
 
 
 class AvailablePlaceDiagnostics(Enum):
@@ -131,11 +208,11 @@ def get_range_from_name(name):
         return {AvailableNormRanges.BINS: AvailableNormRanges.BINS.value[name]}
 
 
-class AvailableAggregators(Enum):
-    MIN = 1
-    MAX = 2
-    AVG = 3
-    MED = 4
+# class AvailableAggregators(Enum):
+#     MIN = 1
+#     MAX = 2
+#     AVG = 3
+#     MED = 4
 
 
 class AvailableDataFormats(Enum):
@@ -150,12 +227,14 @@ class AvailableTasks(Enum):
     PARSE = 'parse'
     UPLOAD = 'upload'
     CORR = 'correlate'
-    BUILD = 'build'
+    DESIGN = 'design'
     VISUALIZE = 'visualize'
     DIAGNIZE = 'diagnize'
     OPERATE = 'operate'
     CONVERT = 'convert'
     EVALUATE = 'evaluate'
+    STORE_CONFIG = 'store_config'
+    SIMULATE = 'simulate'
 
 
 class AvailableColorPalettes(Enum):

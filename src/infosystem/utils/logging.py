@@ -1,6 +1,34 @@
 import json
 
 
+def initialize(file_name):
+    with open(file_name, 'w') as fp:
+        initial_json = {
+            "ocel:global-event": {
+                "ocel:activity": "__INVALID__"
+            },
+            "ocel:global-object": {
+                "ocel:type": "__INVALID__"
+            },
+            "ocel:global-log": {
+                "ocel:attribute-names": [
+                    "type",
+                    "price"
+                ],
+                "ocel:object-types": [
+                    "order",
+                    "item",
+                    "route"
+                ],
+                "ocel:version": "1.0",
+                "ocel:ordering": "timestamp"
+            },
+            "ocel:events": {},
+            "ocel:objects": {}
+        }
+        json.dump(initial_json, fp)
+
+
 def record_event(file_name, record):
     with open(file_name, 'r+') as file:
         # First we load existing data into a dict.

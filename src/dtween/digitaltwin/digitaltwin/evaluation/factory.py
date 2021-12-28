@@ -6,22 +6,7 @@ from ocpa.algo.conformance.token_based_replay import algorithm as diagnostics_fa
 from dtween.digitaltwin.ocel.objects.mdl.preprocessor import factory as mdl_preprocess_factory
 from dtween.available.constants import EVENT_FILTER, OBJECT_FILTER
 from dtween.util.util import REPLAY_DIAGNOSTICS_MAP, DIAGNOSTICS_FILTER_MAP, OPS_MAP
-
-import json
-
-
-def read_config(directory):
-    with open(directory) as config_json:
-        config = json.loads(config_json.read())
-    return config['config']
-
-
-def update_config(directory, valve, value):
-    config = read_config(directory)
-    new_config = {'config': config}
-    with open(directory, 'w') as file:
-        new_config['config'][valve] = value
-        json.dump(new_config, file, indent=4)
+from dtween.digitaltwin.digitaltwin.util import update_config
 
 
 def gen_diagnostics_scheme(action_pattern_repo):

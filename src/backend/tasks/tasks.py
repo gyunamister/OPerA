@@ -1,31 +1,24 @@
-import datetime
 from time import sleep
 from typing import Dict, List, Union, Any, Tuple, Optional
 
-import numpy as np
 import pandas as pd
 import os
-import itertools
-from dateutil import parser
 
 
 from backend.param.available import AvailableCorrelationsExt, get_available_from_name
-from backend.param.constants import CSV, AGGREGATOR, CONTEXT_KEY, INCLUDES_KEY, GUIDES_KEY, JOBS_KEY, JOB_TASKS_KEY, \
-    METHODS_KEY, negative_context, tid_t, group_t, DEFAULT_TOP, \
-    column_names, high_t, bord_ps, bord_ng, LOCATION, RESOURCE
+from backend.param.constants import CSV, JOBS_KEY, JOB_TASKS_KEY
 from backend.param.settings import CeleryConfig, redis_pwd
 from celery import Celery
 from celery.result import AsyncResult
 from dtween.available.available import AvailableCorrelations
 from dtween.parsedata.objects.ocdata import ObjectCentricData, sort_events
 from dtween.parsedata.objects.oclog import ObjectCentricLog, Trace
-from dtween.parsedata.parse import parse_csv, parse_json
 from dtween.digitaltwin.digitaltwin.objects.factory import get_digital_twin
 from dtween.digitaltwin.ocel.objects.mdl.importer import factory as mdl_import_factory
-# from dtween.digitaltwin.ocpn.discovery import algorithm as discovery_factory
 from ocpa.algo.discovery.ocpn import algorithm as discovery_factory
-# from dtween.digitaltwin.diagnostics import algorithm as diagnostics_factory
 from ocpa.algo.conformance.token_based_replay import algorithm as diagnostics_factory
+from ocpa.objects.log.obj import ObjectCentricEventLog
+from ocpa.objects.log.importer.ocel.versions import import_ocel_json
 import pickle
 import redis
 
@@ -66,30 +59,16 @@ def store_redis_backend(self, data: Any) -> Any:
 
 
 @celery.task(bind=True, serializer='pickle')
-def parse_data(self, data, data_type, parse_param, resource, location) -> ObjectCentricData:
+def parse_data(self, data, data_type, parse_param) -> ObjectCentricEventLog:
     # Dirty fix for serialization of parse_param to celery seem to change the values always to False
-    if resource:
-        parse_param.vmap_availables[RESOURCE] = True
-    if location:
-        parse_param.vmap_availables[LOCATION] = True
     if data_type == CSV:
-        store_redis(parse_csv(data, parse_param), self.request)
+        ocel = mdl_import_factory.apply(
+            data, variant="to_obj", parameters=parse_param)
+        # print(ocel.raw.events)
+        store_redis(ocel, self.request)
     else:
-        store_redis(parse_json(data, parse_param), self.request)
-
-
-@celery.task(bind=True, serializer='pickle')
-def correlate_events(self,
-                     data: ObjectCentricData,
-                     user_ot_selection: List[str],
-                     version: str):
-    version_ext = get_available_from_name(version,
-                                          AvailableCorrelationsExt.INITIAL_PAIR_CORRELATION,
-                                          AvailableCorrelationsExt)
-    selection = set(user_ot_selection)
-    sort_events(data)
-    store_redis(version_ext.value[version].call_with_param(
-        selection=selection, data=data), self.request)
+        store_redis(import_ocel_json.parse_json(
+            data), self.request)
 
 
 @celery.task(bind=True, serializer='pickle')
@@ -103,14 +82,13 @@ def build_digitaltwin(self, data):
 
 @celery.task(bind=True, serializer='pickle')
 def generate_diagnostics(self, ocpn, data, start_date=None, end_date=None):
-    # df = mdl_import_factory.apply(data)
-    if start_date != "" and end_date != "":
-        # start_date = parser.parse(start_date).date()
-        # end_date = parser.parse(end_date).date()
-        # end_date += datetime.timedelta(days=1)
-        data = data.loc[(data["event_timestamp"] > pd.Timestamp(start_date))
-                        & (data["event_timestamp"] < pd.Timestamp(end_date))]
-        print("Events are filtered: {} - {}".format(start_date, end_date))
+    # if start_date != "" and end_date != "":
+    #     # start_date = parser.parse(start_date).date()
+    #     # end_date = parser.parse(end_date).date()
+    #     # end_date += datetime.timedelta(days=1)
+    #     data = data.loc[(data["event_timestamp"] > pd.datetime(start_date))
+    #                     & (data["event_timestamp"] < pd.Timestamp(end_date))]
+    #     print("Events are filtered: {} - {}".format(start_date, end_date))
     diagnostics = diagnostics_factory.apply(ocpn, data)
     print("Diagnostics generated: {}".format(diagnostics))
     store_redis(diagnostics, self.request)

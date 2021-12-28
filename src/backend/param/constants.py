@@ -25,18 +25,16 @@ JSON = 'json'
 TIMESTAMP = 'timestamp'
 OBJECTS = 'objects'
 VALUES = 'values'
-LOCATION = 'location'
-RESOURCE = 'resource'
 GLOBAL = 'global'
 ACTIVITY = 'activity'
 OBJECTTYPE = 'object type'
 CORR_METHOD = 'correlation-method'
+START_TIMESTAMP = "start timestamp"
 CSV_ATTRIBUTES_FST = [AvailableSelections.ACTIVITY.value.title(
 ), TIMESTAMP.title(), OBJECTS.title(), VALUES.title()]
-CSV_ATTRIBUTES_SND = [AvailableSelections.RESOURCE.value.title(
-), AvailableSelections.LOCATION.value.title()]
 CSV_ATTRIBUTES_FST_MULT = [False, False, True, True]
-CSV_ATTRIBUTES_SND_MULT = [False, False]
+CSV_ATTRIBUTES_SND = [START_TIMESTAMP.title()]
+CSV_ATTRIBUTES_SND_MULT = [False]
 
 # Global names
 NA = 'NA'
@@ -49,11 +47,11 @@ MEMORY_PERSISTENCE = 'memory'
 # Multi-page naming
 PARSE_TITLE = 'parse'
 
-CORR_TITLE = 'correlate'
-CORR_URL = '/correlate'
-
 HOME_TITLE = 'home'
 HOME_URL = '/home'
+
+DESIGN_TITLE = 'design'
+DESIGN_URL = '/design'
 
 CVIEW_TITLE = 'control'
 CVIEW_URL = '/control'
@@ -61,8 +59,14 @@ CVIEW_URL = '/control'
 DVIEW_TITLE = 'diagnostics'
 DVIEW_URL = '/diagnostics'
 
+PERF_ANALYSIS_TITLE = 'performance'
+PERF_ANALYSIS_URL = '/performance'
+
 DASHBOARD_TITLE = 'dashboard'
 DASHBOARD_URL = '/dashboard'
+
+OVIEW_TITLE = 'operational'
+OVIEW_URL = '/operational'
 
 PATTERN_TITLE = 'pattern'
 PATTERN_URL = '/pattern'
@@ -98,12 +102,11 @@ RESULT_WAIT = 'result-wait'
 ABOUT_URL = '/about'
 
 # Multi-page signaling and communication
-STORES_SIGNALS = [HOME_TITLE, CVIEW_TITLE, DVIEW_TITLE, DASHBOARD_TITLE, PATTERN_TITLE, PARSE_TITLE, CORR_OUT_TITLE, TRACE_TITLE, DEV_CTX_TITLE, RESULT_TITLE, GUIDANCE_TITLE, RESULT_INIT,
-                  RESULT_POST, RESULT_INIT_SUMMARY]
+STORES_SIGNALS = [HOME_TITLE, PARSE_TITLE, DESIGN_TITLE, CVIEW_TITLE,
+                  DVIEW_TITLE, OVIEW_TITLE, DASHBOARD_TITLE, PATTERN_TITLE]
 TYPED_STORES_SIGNALS = [TRACE_TITLE, DEV_CTX_TITLE]
 GLOBAL_FORM_SIGNAL = 'current-log'
-FORMS = [PARSE_TITLE, CORR_TITLE, CORR_OUT_TITLE,
-         DEV_CTX_TITLE, RESULT_TITLE, TRACE_TITLE]
+FORMS = [PARSE_TITLE]
 MULTI_PAGE_URLS = [CORR_OUT_TITLE, RESULT_TITLE,
                    TRACE_RESULT_SIGNAL, TRACE_RETURN]
 MULTI_PAGE_REFRESH = [RESULT_URL, CORR_OUT_URL, DEV_CTX_URL, TRACE_URL]
@@ -161,3 +164,25 @@ DP = 4
 SHOW_PREVIEW_ROWS = 20
 ATTRIBUTE_CSV_TEXT = "Please assign the respective name(s) of your data's columns to their respective attributes:"
 ATTRIBUTE_OCEL_TEXT = "If available, please assign the respective name(s) of your OCEL event values to their respective attribute:"
+
+VALVE_MIN = "r_min"
+VALVE_MAX = "r_max"
+VALVE_INIT = "default"
+VALVE_NAME = "name"
+VALVE_VALUE = "cur"
+
+WRITE_NAME = "name"
+WRITE_OBJ_TYPE = "object_type"
+WRITE_ATTR_NAME = "attr_name"
+WRITE_TR_NAME = "tr_name"
+WRITE_INIT = "default"
+
+ACTIVITY_VARIANT_NAME = "name"
+ACTIVITY_VARIANT_DESC = "description"
+ACTIVITY_VARIANT_TR_NAME = "tr_name"
+ACTIVITY_VARIANT_DEFAULT = "default"
+
+TRANSITION = 'transition'
+PLACE = 'place'
+FLOW = 'flow'
+GUARD = 'guard'

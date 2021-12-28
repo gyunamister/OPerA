@@ -10,14 +10,17 @@ from backend.app import app
 from backend.components.misc import global_signal_id_maker, temp_jobs_store_id_maker, form_persistence_id_maker, \
     global_url_signal_id_maker, global_form_load_signal_id_maker, global_refresh_signal_id_maker
 from backend.pages.about import page_layout as about_layout
-from backend.pages.control_view import page_layout as controlview_layout
+from backend.pages.design import page_layout as design_layout
+from backend.pages.perf_analysis import page_layout as perfanalysis_layout
 from backend.pages.diagnostics_view import page_layout as diagnosticsview_layout
+from backend.pages.control_view import page_layout as control_view_layout
+from backend.pages.operational_view import page_layout as operational_view_layout
 from backend.pages.dashboard import page_layout as dashboard_layout
 from backend.pages.action_pattern import page_layout as pattern_layout
 from backend.pages.home import page_layout as home_layout
-from backend.param.constants import DEFAULT_JOBS, CORR_URL, ABOUT_URL, \
-    DEFAULT_FORM, STORES_SIGNALS, CORR_OUT_URL, FORMS, TRACE_SIGNAL, TRACE_URL, DEV_CTX_URL, MULTI_PAGE_URLS, \
-    GLOBAL_FORM_SIGNAL, RESULT_URL, TRACE_RESULT_SIGNAL, MULTI_PAGE_REFRESH, CVIEW_URL, DVIEW_URL, DASHBOARD_URL, PATTERN_URL
+from backend.param.constants import DEFAULT_JOBS, ABOUT_URL, \
+    DEFAULT_FORM, STORES_SIGNALS, FORMS, TRACE_SIGNAL, MULTI_PAGE_URLS, \
+    GLOBAL_FORM_SIGNAL, TRACE_RESULT_SIGNAL, MULTI_PAGE_REFRESH, CVIEW_URL, DVIEW_URL, DASHBOARD_URL, PATTERN_URL, PERF_ANALYSIS_URL, DESIGN_URL, OVIEW_URL
 from backend.param.styles import GLOBAL_STYLE, NO_DISPLAY
 from backend.util import read_global_signal_value, no_update
 from dash.dependencies import Input, Output
@@ -36,6 +39,12 @@ app.layout = html.Div([
     dcc.Store(id='init', storage_type='memory', data=True),
     dcc.Store(id='last-job', storage_type='session'),
     dcc.Store(id='jobs-store', storage_type='session', data=DEFAULT_JOBS),
+    dcc.Store(id='valve-store', storage_type='session'),
+    dcc.Store(id='write-store', storage_type='session'),
+    dcc.Store(id='activity-variant-store', storage_type='session'),
+    dcc.Store(id='log-dir', storage_type='session'),
+    dcc.Store(id='config-dir', storage_type='session'),
+    dcc.Store(id='token-map', storage_type='session'),
     dcc.Store(id='action-repository', storage_type='session', data=[]),
     dcc.Store(id='condition-repository', storage_type='session', data=[]),
     dcc.Store(id='action-pattern-repository',
@@ -82,10 +91,16 @@ app.layout = html.Div([
 def display_page(pathname):
     if pathname == ABOUT_URL:
         return about_layout
+    elif pathname == DESIGN_URL:
+        return design_layout
     elif pathname == CVIEW_URL:
-        return controlview_layout
+        return control_view_layout
+    elif pathname == OVIEW_URL:
+        return operational_view_layout
     elif pathname == DVIEW_URL:
         return diagnosticsview_layout
+    elif pathname == PERF_ANALYSIS_URL:
+        return perfanalysis_layout
     elif pathname == DASHBOARD_URL:
         return dashboard_layout
     elif pathname == PATTERN_URL:
@@ -151,13 +166,13 @@ if __name__ == '__main__':
     if localhost_or_docker == 'localhost':
         app.run_server(
             debug=debug,
-            port=8050,
+            port=8051,
             dev_tools_hot_reload=False, use_reloader=False
         )
     else:
         app.run_server(
             host='0.0.0.0',
             debug=debug,
-            port=8050,
+            port=8051,
             dev_tools_hot_reload=True, use_reloader=False
         )

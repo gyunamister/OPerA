@@ -1,17 +1,22 @@
 import base64
 import io
 import json
+import ast
 import dash
 from datetime import datetime
 from collections import OrderedDict
 import dash_html_components as html
 import pandas as pd
 from backend.param.constants import JOB_ID_KEY, JOBS_KEY, JOB_DATA_TYPE_KEY, JOB_DATA_NAME_KEY, JOB_DATA_DATE_KEY, \
-    JOB_TASKS_KEY, SEP, NA, CSV, PROPS, CHILDREN, VALUE, OBJECTS, TIMESTAMP, VALUES, CORR_METHOD, LOCATION, RESOURCE, ACTIVITY, MDL, JSON
+    JOB_TASKS_KEY, SEP, NA, CSV, PROPS, CHILDREN, VALUE, OBJECTS, TIMESTAMP, VALUES, CORR_METHOD, ACTIVITY, MDL, JSON, START_TIMESTAMP, VALVE_MIN, VALVE_MAX, VALVE_INIT, VALVE_NAME, VALVE_VALUE, WRITE_NAME, WRITE_OBJ_TYPE, WRITE_ATTR_NAME, WRITE_INIT, ACTIVITY_VARIANT_NAME, ACTIVITY_VARIANT_DESC, ACTIVITY_VARIANT_TR_NAME, ACTIVITY_VARIANT_DEFAULT
 from backend.tasks.tasks import celery, get_task, db, results_key
 from celery.result import AsyncResult
-from dtween.parsedata.config.param import CsvParseParameters, JsonParseParameters
+from ocpa.objects.log.util.param import JsonParseParameters
 from dtween.available.constants import INTERVALS, TRANSITION, GUARD
+from typing import List, Set
+from dtween.digitaltwin.digitaltwin.control.obj import NumericalValve, WriteOperation, ActivityVariant
+from ocpa.objects.oc_petri_net.obj import ObjectCentricPetriNet
+from typing import List, Dict
 
 
 def add_job(data_format, date, jobs, log_hash, name):
@@ -149,13 +154,12 @@ def read_init_signal_value(value):
     return session, log_hash, data_format, name, date
 
 
-def get_attribute_form_dict(activity, location, objects, resource, timestamp, values):
+def get_attribute_form_dict(activity, objects, timestamp, values, start_timestamp):
     return {ACTIVITY.title(): activity,
-            LOCATION.title(): location,
             OBJECTS.title(): SEP.join(objects),
-            RESOURCE.title(): resource,
             TIMESTAMP.title(): timestamp,
-            VALUES.title(): SEP.join(values)}
+            VALUES.title(): SEP.join(values),
+            START_TIMESTAMP.title(): start_timestamp}
 
 
 def read_corr_form_dict(d):
@@ -195,55 +199,32 @@ def read_active_attribute_form(children):
                 PROPS][VALUE]
     else:
         values = []
-    resource = \
+    start_timestamp = \
         children[0][PROPS][CHILDREN][4][PROPS][CHILDREN][0][PROPS][CHILDREN][0][PROPS][CHILDREN][1][
             PROPS][VALUE]
-    location = \
-        children[0][PROPS][CHILDREN][4][PROPS][CHILDREN][1][PROPS][CHILDREN][0][PROPS][CHILDREN][1][
-            PROPS][VALUE]
-    return activity, location, log_hash, objects, resource, timestamp, values
+    return activity, log_hash, objects, timestamp, values, start_timestamp
 
 
-def build_csv_param(activity, location, objects, resource, timestamp, values):
+def build_csv_param(activity, objects, timestamp, values, start_timestamp):
     vmap_params = {}
-    vmap_availables = {}
-    if location != NA:
-        vmap_availables[LOCATION] = True
-        vmap_params[LOCATION] = location
-    else:
-        vmap_availables[LOCATION] = False
-    if resource != NA:
-        vmap_availables[RESOURCE] = True
-        vmap_params[RESOURCE] = resource
-    else:
-        vmap_availables[RESOURCE] = False
-    csv_param = CsvParseParameters(
-        obj_names=objects,
-        val_names=values,
-        time_name=timestamp,
-        act_name=activity,
-        vmap_params=vmap_params,
-        vmap_availables=vmap_availables
-    )
+
+    csv_param = {
+        "obj_names": objects,
+        "val_names": values,
+        "time_name": timestamp,
+        "act_name": activity,
+        "vmap_params": vmap_params,
+        "start_time": start_timestamp
+    }
     return csv_param
 
 
-def build_json_param(location, resource):
+def build_json_param(start_time):
     vmap_params = {}
-    vmap_availables = {}
-    if location != NA:
-        vmap_availables[LOCATION] = True
-        vmap_params[LOCATION] = location
-    else:
-        vmap_availables[LOCATION] = False
-    if resource != NA:
-        vmap_availables[RESOURCE] = True
-        vmap_params[RESOURCE] = resource
-    else:
-        vmap_availables[RESOURCE] = False
+    if start_time != NA:
+        vmap_params[START_TIMESTAMP] = start_time
     json_param = JsonParseParameters(
-        vmap_params=vmap_params,
-        vmap_availables=vmap_availables
+        vmap_params=vmap_params
     )
     return json_param
 
@@ -260,18 +241,6 @@ def display_time(seconds, granularity=2):
                 name = name.rstrip('s')
             result.append("{} {}".format(value, name))
     return ', '.join(result[:granularity])
-
-
-def set_special_attributes(location, resource):
-    if resource != NA:
-        res = True
-    else:
-        res = False
-    if location != NA:
-        loc = True
-    else:
-        loc = False
-    return loc, res
 
 
 def no_update(n):
@@ -318,6 +287,33 @@ def transform_to_guards(records):
     for r in records:
         guards.update({r[TRANSITION]: r[GUARD]})
     return guards
+
+
+def transform_to_valves(records):
+    valves: Set[NumericalValve] = set()
+    for r in records:
+        valve = NumericalValve(r[VALVE_NAME], None,
+                               r[VALVE_MIN], r[VALVE_MAX], r[VALVE_INIT])
+        valves.add(valve)
+    return valves
+
+
+def transform_to_writes(records):
+    writes: Set[WriteOperation] = set()
+    for r in records:
+        write = WriteOperation(
+            r[WRITE_NAME], None, r[WRITE_OBJ_TYPE], r[WRITE_ATTR_NAME], r[WRITE_INIT])
+        writes.add(write)
+    return writes
+
+
+def transform_to_activity_variants(records):
+    activity_variants: Set[ActivityVariant] = set()
+    for r in records:
+        activity_variant = ActivityVariant(
+            r[ACTIVITY_VARIANT_NAME], ast.literal_eval(r[ACTIVITY_VARIANT_DESC]), None, r[ACTIVITY_VARIANT_DEFAULT])
+        activity_variants.add(activity_variant)
+    return activity_variants
 
 
 def transform_config_to_datatable_dict(config):

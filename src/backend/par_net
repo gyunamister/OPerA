@@ -1,0 +1,43 @@
+digraph {
+	Arrival
+	"Plan Purchase Requisition" [label="Plan Purchase Requisition" shape=box style=rounded]
+	"Create Purchase Requisition" [label="Create Purchase Requisition" shape=box style=rounded]
+	"Create Purchase Order" [label="Create Purchase Order" shape=box style=rounded]
+	"Receive Goods" [label="Receive Goods" shape=box style=rounded]
+	"Issue Goods Receipt" [label="Issue Goods Receipt" shape=box style=rounded]
+	"Verify Material" [label="Verify Material" shape=box style=rounded]
+	XorSplit7 [label="X (decision1)" shape=diamond]
+	XorJoin8 [label=X shape=diamond]
+	AndSplit9 [label="+" shape=diamond]
+	"Plan Goods Issue" [label="Plan Goods Issue" shape=box style=rounded]
+	"Goods Issue" [label="Goods Issue" shape=box style=rounded]
+	XorSplit12 [label="X (decision2)" shape=diamond]
+	XorJoin13 [label=X shape=diamond]
+	AndJoin14 [label="+" shape=diamond]
+	Terminal
+	"Receive Invoice" [label="Receive Invoice" shape=box style=rounded]
+	"Issue Invoice Receipt" [label="Issue Invoice Receipt" shape=box style=rounded]
+	"Clear Invoice" [label="Clear Invoice" shape=box style=rounded]
+	Arrival -> "Plan Purchase Requisition"
+	"Plan Purchase Requisition" -> "Create Purchase Requisition"
+	"Create Purchase Requisition" -> "Create Purchase Order"
+	"Create Purchase Order" -> "Receive Goods"
+	"Receive Goods" -> "Issue Goods Receipt"
+	"Issue Goods Receipt" -> "Verify Material"
+	"Verify Material" -> XorSplit7
+	XorSplit7 -> "Verify Material"
+	XorSplit7 -> XorJoin8
+	XorJoin8 -> AndSplit9
+	AndSplit9 -> "Receive Invoice"
+	AndSplit9 -> "Plan Goods Issue"
+	"Plan Goods Issue" -> "Goods Issue"
+	"Goods Issue" -> XorSplit12
+	XorSplit12 -> "Goods Issue"
+	XorSplit12 -> XorJoin13
+	XorJoin13 -> AndJoin14
+	AndJoin14 -> Terminal
+	"Receive Invoice" -> "Issue Invoice Receipt"
+	"Issue Invoice Receipt" -> "Clear Invoice"
+	"Clear Invoice" -> AndJoin14
+	graph [rankdir=LR]
+}

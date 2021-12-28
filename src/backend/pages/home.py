@@ -10,25 +10,24 @@ from backend.app import app
 from backend.components.misc import container, collapse_button_id, button, single_row, \
     collapse_title_maker, compute_title_maker, compute_button_id, card, global_signal_id_maker, \
     temp_jobs_store_id_maker, form_persistence_id_maker, global_form_load_signal_id_maker, goto_title_maker, \
-    goto_button_id
+    goto_button_id, tab, tab_id, show_title_maker
 from backend.components.tables import create_data_table
 from backend.components.userforms import form_dropdown_row, make_job_option, empty_radio_item, \
     radio_item_id_maker, radio_items, create_attribute_forms, attribute_form_id
-from backend.param.constants import CSV, JSON, DEFAULT_JOBS, CSV_ATTRIBUTES_FST, NA, CSV_ATTRIBUTES_SND, \
-    JOBS_KEY, JOB_DATA_DATE_KEY, JOB_DATA_NAME_KEY, CSV_ATTRIBUTES_FST_MULT, CSV_ATTRIBUTES_SND_MULT, \
-    JOB_DATA_TYPE_KEY, CVIEW_URL, CORR_TITLE, PARSE_TITLE, STORES_SIGNALS, FORMS, GLOBAL_FORM_SIGNAL, DEFAULT_FORM, \
-    ATTRIBUTE_CSV_TEXT, ATTRIBUTE_OCEL_TEXT, SHOW_PREVIEW_ROWS, DEV_CTX_TITLE, MDL, CVIEW_TITLE, HOME_TITLE
+from backend.param.constants import CSV, JSON, DEFAULT_JOBS, CSV_ATTRIBUTES_FST, NA, \
+    JOBS_KEY, JOB_DATA_DATE_KEY, JOB_DATA_NAME_KEY, CSV_ATTRIBUTES_FST_MULT, \
+    JOB_DATA_TYPE_KEY, DESIGN_URL, PARSE_TITLE, STORES_SIGNALS, FORMS, GLOBAL_FORM_SIGNAL, DEFAULT_FORM, \
+    ATTRIBUTE_CSV_TEXT, ATTRIBUTE_OCEL_TEXT, SHOW_PREVIEW_ROWS, MDL, CSV_ATTRIBUTES_SND, CSV_ATTRIBUTES_SND_MULT
 from backend.param.styles import LINK_CONTENT_STYLE, CENTER_DASHED_BOX_STYLE, NO_DISPLAY, FONT_STYLE, BUTTON_LEFT_STYLE
 from backend.tasks.tasks import store_redis_backend, parse_data, get_remote_data, db, user_log_key
 from backend.util import add_job, run_task, forget_all_tasks, get_job_id, check_existing_job, \
-    parse_contents, read_active_attribute_form, build_csv_param, write_global_signal_value, \
-    set_special_attributes, get_attribute_form_dict, guarantee_list_input, no_update, build_json_param, \
+    parse_contents, read_active_attribute_form, build_csv_param, write_global_signal_value, get_attribute_form_dict, guarantee_list_input, no_update, build_json_param, \
     read_global_signal_value
 from celery.result import AsyncResult
 from dtween.available.available import AvailableTasks, AvailableSelections
-from dtween.parsedata.objects.exporter.exporter import export_oc_data_events_to_dataframe
 from dash.dependencies import Input, Output, State
 from datetime import datetime
+from dtween.parsedata.objects.exporter.exporter import export_oc_data_events_to_dataframe
 
 from flask import request
 from pandas.core.frame import DataFrame
@@ -38,9 +37,11 @@ jobs_title = "Variants"
 jobs_title_hidden = "hidden-jobs"
 upload_table_title = 'all rows'
 parse_title = 'parse'
-goto_title = 'Control view'
-remove_jobs_title = 'remove digital twins'
-start_from_last_job = 'selected digital twin'
+upload_tab_title = 'upload'
+analysis_tab_title = 'analysis'
+goto_title = 'Discovery'
+remove_jobs_title = 'remove analysis'
+start_from_last_job = 'selected analysis'
 selected_attribute_form = 'selected-attribute-selection'
 
 default_attribute_layout = [
@@ -70,11 +71,11 @@ default_attribute_layout = [
                         button(parse_title,
                                compute_title_maker,
                                compute_button_id,
-                               href=CVIEW_URL),
+                               href=DESIGN_URL),
                         button(goto_title,
                                goto_title_maker,
                                goto_button_id,
-                               href=CVIEW_URL,
+                               href=DESIGN_URL,
                                style=BUTTON_LEFT_STYLE)
                     ]), 'end'),
             html.Hr(),
@@ -129,7 +130,7 @@ upload_tab_content = card(
 
 jobs_tab_content = card(
     [
-        single_row(html.H2("Digital Twin Dashboard")),
+        single_row(html.H2("Analysis Dashboard")),
         dbc.Row([dbc.Col(button(start_from_last_job,
                                 collapse_title_maker,
                                 collapse_button_id)),
@@ -140,13 +141,13 @@ jobs_tab_content = card(
     ])
 
 # Page layout
-page_layout = container("Digital Twin of An Organization Based on Action-Oriented Process Mining",
+page_layout = container("Digital Twin of an Organization",
                         [
                             dbc.Tabs([
-                                dbc.Tab(upload_tab_content,
-                                        label="Upload", tab_id='upload'),
-                                dbc.Tab(jobs_tab_content,
-                                        label="Variants", tab_id='variants')
+                                tab(upload_tab_content, upload_tab_title,
+                                    show_title_maker, tab_id),
+                                tab(jobs_tab_content, analysis_tab_title,
+                                    show_title_maker, tab_id),
                             ], id='home-tabs')
                         ])
 
@@ -218,13 +219,11 @@ def upload_data(session, content, name, jobs, options, last_job):
                     task_id = run_task(jobs, log_hash, AvailableTasks.UPLOAD.value,
                                        store_redis_backend, data=out)
                 else:
-                    json_param = build_json_param(NA, NA)
+                    json_param = build_json_param(NA)
                     task_id = run_task(jobs, log_hash, AvailableTasks.UPLOAD.value, parse_data,
                                        data=out,
                                        data_type=data_format,
-                                       parse_param=json_param,
-                                       resource=False,
-                                       location=False)
+                                       parse_param=json_param)
                 # return write_global_signal_value([session, log_hash, data_format, name, str(date)]), \
                     # jobs, \
                     #     '', \
@@ -257,11 +256,8 @@ def upload_data(session, content, name, jobs, options, last_job):
     Output('init', 'data'),
     Output(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
     Output('last-job', 'data'),
-    # Output(global_signal_id_maker(HOME_TITLE), 'children'),
-
     Input(collapse_button_id(start_from_last_job), 'n_clicks'),
     Input('signal', 'children'),
-
     State(radio_item_id_maker(jobs_title), 'value'),
     State("home-tabs", "active_tab"),
     State('jobs-store', 'data'),
@@ -284,13 +280,10 @@ def update_home_output(n, value, radio_value, at, jobs, nonactive, active, init,
             write_global_signal_value(
                 [radio_value, str(datetime.now())]), \
             dash.no_update
-        # , \
-        # write_global_signal_value(
-        #     [radio_value, str(datetime.now())])
 
     else:
         rows = SHOW_PREVIEW_ROWS
-        if value is not None and at == 'upload':
+        if value is not None and at == tab_id(upload_tab_title):
             # Newly uploaded data --> new job
             session, log_hash, data_format, name, date = read_global_signal_value(
                 value)
@@ -318,10 +311,8 @@ def update_home_output(n, value, radio_value, at, jobs, nonactive, active, init,
                         ], id=attribute_form_id(log_hash)
                     )], \
                     dash.no_update, \
-                    dash.no_update, \
+                    write_global_signal_value([log_hash, str(datetime.now())]), \
                     log_hash
-                # , \
-                # dash.no_update
             else:
                 oc_data = get_remote_data(
                     user, log_hash, jobs, AvailableTasks.UPLOAD.value)
@@ -350,10 +341,8 @@ def update_home_output(n, value, radio_value, at, jobs, nonactive, active, init,
                         ], id=attribute_form_id(log_hash)
                     )], \
                     dash.no_update, \
-                    dash.no_update, \
+                    write_global_signal_value([log_hash, str(datetime.now())]), \
                     log_hash
-                # , \
-                # dash.no_update
         else:
             # User selected a different job from all jobs --> change focus
             if n is not None and nonactive is not None:
@@ -396,32 +385,16 @@ def update_home_output(n, value, radio_value, at, jobs, nonactive, active, init,
                         dash.no_update, \
                         write_global_signal_value([radio_value, str(datetime.now())]), \
                         radio_value
-                    # , \
-                    # write_global_signal_value(
-                    #     [radio_value, str(datetime.now())])
             else:
                 # Empty jobs don't need initialization
                 return dash.no_update, dash.no_update, dash.no_update, dash.no_update, False, \
                     dash.no_update, dash.no_update
-                # , dash.no_update
-
-
-# Page layout
-page_layout = container("Digital Twin of An Organization Based on Action-Oriented Process Mining",
-                        [
-                            dbc.Tabs([
-                                dbc.Tab(upload_tab_content,
-                                        label="Upload", tab_id='upload'),
-                                dbc.Tab(jobs_tab_content,
-                                        label="Digital Twins", tab_id='jobs')
-                            ], id='home-tabs')
-                        ])
 
 
 @app.callback(
     # Output(global_signal_id_maker(CORR_TITLE), 'children'),
     # Output(temp_jobs_store_id_maker(CORR_TITLE), 'data'),
-    Output(global_signal_id_maker(PARSE_TITLE), 'children'),
+    # Output(global_signal_id_maker(PARSE_TITLE), 'children'),
     Output(temp_jobs_store_id_maker(PARSE_TITLE), 'data'),
     Output(form_persistence_id_maker(PARSE_TITLE), 'data'),
     Input(compute_button_id(parse_title), 'n_clicks'),
@@ -433,45 +406,36 @@ page_layout = container("Digital Twin of An Organization Based on Action-Oriente
 )
 def run_parse_log(n, children, jobs, temp_jobs, form):
     if n is not None:
-        activity, location, log_hash, objects, resource, timestamp, values = read_active_attribute_form(
+        activity, log_hash, objects, timestamp, values, start_timestamp = read_active_attribute_form(
             children)
         objects = guarantee_list_input(objects)
         values = guarantee_list_input(values)
         if form is None:
             form = DEFAULT_FORM
         form[log_hash] = get_attribute_form_dict(
-            activity, location, objects, resource, timestamp, values)
+            activity, objects, timestamp, values, start_timestamp)
         user = request.authorization['username']
         if jobs[JOBS_KEY][log_hash][JOB_DATA_TYPE_KEY] == CSV or jobs[JOBS_KEY][log_hash][JOB_DATA_TYPE_KEY] == MDL:
             df = get_remote_data(user, log_hash, jobs,
                                  AvailableTasks.UPLOAD.value)
             csv_param = build_csv_param(
-                activity, location, objects, resource, timestamp, values)
-            loc, res = set_special_attributes(location, resource)
+                activity, objects, timestamp, values, start_timestamp)
             task_id = run_task(jobs, log_hash, AvailableTasks.PARSE.value, parse_data, temp_jobs,
                                data=df,
                                data_type=CSV,
-                               parse_param=csv_param,
-                               resource=res,
-                               location=loc)
+                               parse_param=csv_param)
         else:
             oc_data = get_remote_data(
                 user, log_hash, jobs, AvailableTasks.UPLOAD.value)
             if oc_data is None:
                 return no_update(3)
-            loc, res = set_special_attributes(location, resource)
-            json_param = build_json_param(location, resource)
-            if loc:
-                oc_data.meta.locs = {event.vmap[json_param.vmap_params[AvailableSelections.LOCATION]]
-                                     for index, event in oc_data.raw.events.items()}
-            if res:
-                oc_data.meta.ress = {event.vmap[json_param.vmap_params[AvailableSelections.RESOURCE]]
-                                     for index, event in oc_data.raw.events.items()}
+            json_param = build_json_param(start_timestamp)
             oc_data.vmap_param = json_param
             task_id = run_task(jobs, log_hash, AvailableTasks.PARSE.value, store_redis_backend, temp_jobs,
                                data=oc_data)
-        return write_global_signal_value([log_hash, task_id]), jobs, form
-    return no_update(3)
+        # return write_global_signal_value([log_hash, task_id]), jobs, form
+        return jobs, form
+    return no_update(2)
 
 
 # Start job reset
@@ -495,15 +459,15 @@ def run_parse_log(n, children, jobs, temp_jobs, form):
         State(temp_jobs_store_id_maker(title), 'data') for title in STORES_SIGNALS
     ]
 )
-def init_jobs(n, jobs, jobs1, jobs2, jobs3, jobs4, jobs5, jobs6, jobs7, jobs8, jobs9, jobs10, job11, job12, job13, job14):
+def init_jobs(n, jobs, jobs1, jobs2, jobs3, jobs4, jobs5, jobs6, jobs7, jobs8):
     jobs_list = [jobs, jobs1, jobs2, jobs3,
-                 jobs4, jobs5, jobs6, jobs7, jobs8, jobs9, jobs10, job11, job12, job13, job14]
+                 jobs4, jobs5, jobs6, jobs7, jobs8]
     if n is not None and any([job is not None for job in jobs_list]):
         # Forget all the celery task results in the redis results backend associated with a stored job
         for job in jobs_list:
             forget_all_tasks(jobs)
-        return tuple([True, True, None] + [True] * 20)
+        return tuple([True, True, None] + [True] * 9)
     else:
-        return tuple([dash.no_update] * 23)
+        return tuple([dash.no_update] * 12)
 
 #

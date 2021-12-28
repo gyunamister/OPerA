@@ -1,250 +1,472 @@
 import hashlib
 import base64
-import datetime
-from datetime import date
+from datetime import datetime
+from datetime import timedelta
 import re
 import sqlite3
 import json
 
-from dash_bootstrap_components._components.Col import Col
+import subprocess
 
 from backend.components.misc import container, single_row, button, show_title_maker, show_button_id, global_signal_id_maker, temp_jobs_store_id_maker, global_form_load_signal_id_maker
-import dash_interactive_graphviz
 from dash.dependencies import Input, Output, State
 import dash_html_components as html
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 from backend.app import app
-import pandas as pd
 import dash_table
 import dash
-from collections import OrderedDict
-from backend.param.constants import CVIEW_TITLE, DVIEW_TITLE, GLOBAL_FORM_SIGNAL, DVIEW_URL, PARSE_TITLE, DASHBOARD_TITLE, DASHBOARD_URL, JOBS_KEY, JOB_TASKS_KEY, JSON
+import dash_daq as daq
+from backend.param.constants import DASHBOARD_URL, GLOBAL_FORM_SIGNAL, CVIEW_TITLE, JSON, DASHBOARD_TITLE
 
-from backend.util import add_job, run_task, forget_all_tasks, get_job_id, check_existing_job, read_global_signal_value, read_active_attribute_form, write_global_signal_value, no_update, transform_config_to_datatable_dict, parse_contents
+from dtween.digitaltwin.digitaltwin.util import read_config
+from dtween.util.util import REPLAY_DIAGNOSTICS_MAP
+from dtween.digitaltwin.ocel.objects.ocel.importer import factory as ocel_import_factory
+from backend import time_utils
+
+from backend.util import read_global_signal_value, no_update, parse_contents, run_task
 from backend.tasks.tasks import get_remote_data, store_redis_backend
-from dtween.available.available import AvailableTasks
-# from dtween.digitaltwin.ocpn.visualization import visualizer as ocpn_vis_factory
-from ocpa.visualization.oc_petri_net import factory as ocpn_vis_factory
+from dtween.available.available import AvailableTasks, AvailableConfObjImpact, AvailableConfFuncImpact, AvailableRunObjImpact, AvailableRunFuncImpact, AvailableObjPerformanceMetric, AvailableFuncPerformanceMetric
 from dtween.digitaltwin.digitaltwin.operation import factory as oper_factory
+from dtween.digitaltwin.impact_analysis import visualizer as impact_visualizer
 from flask import request
 from dateutil import parser
-from dtween.digitaltwin.ocel.objects.ocel.importer import factory as ocel_import_factory
-from dtween.digitaltwin.ocel.objects.mdl.preprocessor import factory as mdl_preprocess_factory
-from dash.dependencies import Input, Output, State, MATCH, ALL
-from dtween.digitaltwin.digitaltwin.evaluation import factory as evaluation_factory
-from dtween.digitaltwin.digitaltwin.visualization import visualizer as dt_vis_factory
-# from pm4pymdl.algo.mvp.utils import succint_mdl_to_exploded_mdl
-from ocpa.objects.log.importer.mdl.factory import succint_mdl_to_exploded_mdl
 
-connect_db_title = "Connect to Information System"
-load_ocpn_title = "load digital twin".title()
+import pickle
+import redis
+from time import sleep
+from backend.param.settings import redis_pwd
+
+
+set_default_config_title = "Refresh configuration".title()
 start_title = "start".title()
-stop_title = "stop".title()
-reset_title = "reset".title()
+move_forward_title = "forward".title()
+add_action_instance_title = "Add action instance"
 
-uploads = dbc.Row(
-    [
-        dbc.Col(dcc.Upload(id="upload-system-config",
-                children=button(connect_db_title, show_title_maker, show_button_id)), width="auto"),
-    ], justify='start'
-)
 
-bin_size_slider = dbc.FormGroup(
-    [
-        dbc.Label("Select Bin Size", html_for="range-slider"),
-        dcc.RangeSlider(id='bin-size-slider', max=0, min=-120, value=[-24, 0]),
-        dbc.FormText(id='output-bin-size-slider')
-    ]
-)
+class SimulationController:
+    proc: subprocess.Popen = None
+
+    def __init__(self, proc=None):
+        self.proc = proc
+
+    # @proc.setter
+    # def proc(self, proc):
+    #     self._proc = proc
+
+    # @property
+    # def proc(self):
+    #     return self._proc
+
+    # def test(self):
+    #     pass
+
+
+proc = subprocess.Popen(
+    ["python", "/Users/gyunam/Documents/DigitalTwin/example_code/oc_sim.py"], stdin=subprocess.PIPE)
+sc = SimulationController(proc)
+print(sc.proc.pid)
+
+
+def set_proc(proc):
+    sc.proc = proc
+
+
+def get_proc():
+    return sc.proc
+
+
+sim_process_id = "current-sim-process"
+
+db = redis.StrictRedis(host='localhost', port=6379, password=redis_pwd, db=0)
+
+
+def results_key(task_id):
+    return f'result-{task_id}'
+
+
+def store_redis(data, task):
+    key = results_key(task)
+    pickled_object = pickle.dumps(data)
+    db.set(key, pickled_object)
+
+
+def get_redis_data(user, task):
+    timeout = 0
+    key = results_key(task)
+    while not db.exists(key):
+        sleep(1)
+        timeout += 1
+        if timeout > CELERY_TIMEOUT:
+            return None
+        if task.failed():
+            return None
+    return pickle.loads(db.get(key))
+
 
 step_size_slider = dbc.FormGroup(
     [
-        dbc.Label("Select Step Size", html_for="range-slider"),
-        dcc.RangeSlider(id='step-size-slider', min=0, max=120, value=[0, 24]),
+        dbc.Label("Select Simulation Step Size", html_for="slider"),
+        dcc.Slider(id='step-size-slider', min=0, max=120, value=24),
         dbc.FormText(id='output-step-size-slider')
     ]
 )
 
-
-sliders = dbc.Row(
+num_step_slider = dbc.FormGroup(
     [
-        dbc.Col(bin_size_slider),
-        dbc.Col(step_size_slider)
+        dbc.Label("Select Number of Steps", html_for="slider"),
+        dcc.Slider(id='num-step-slider', min=0, max=365, value=100),
+        dbc.FormText(id='output-num-step-slider')
     ]
 )
 
-buttons = [
-    button(load_ocpn_title, show_title_maker, show_button_id),
+# table_name = dbc.Row(
+#     [
+#         dbc.Col(html.H4("Condition Repository")),
+#         dbc.Col(html.H4("Action Repository")),
+#     ]
+# )
+
+# action_pattern_content = dbc.Row(
+#     [
+#         dcc.ConfirmDialog(
+#             id='confirm-add-action-pattern',
+#             message='Action pattern is added.',
+#         ),
+#         dbc.Col(
+#             dash_table.DataTable(
+#                 id='condition-table',
+#                 columns=[
+#                     # {'id': 'index', 'name': 'index'},
+#                     {'id': 'Name', 'name': 'Name'},
+#                     {'id': 'Expression', 'name': 'Expression'}
+#                 ],
+#                 editable=True)
+#         ),
+#         dbc.Col(
+#             dash_table.DataTable(
+#                 id='action-table',
+#                 columns=[
+#                     # {'id': 'index', 'name': 'index'},
+#                     {'id': 'Action Name', 'name': 'Action Name'},
+#                     {'id': 'Description', 'name': 'Description'},
+#                     # {'id': 'Value', 'name': 'Value'},
+#                 ],
+#                 editable=True
+#             )
+#         )
+#     ]
+# )
+
+# condition_input = dbc.FormGroup(
+#     [
+#         dbc.Label("Select condition", html_for="example-password"),
+#         dcc.Dropdown(id='condition-dropdown', multi=True),
+#         dbc.FormText(
+#             "You can select multiple conditions.", color="secondary"
+#         ),
+#     ]
+# )
+
+action_input = dbc.FormGroup(
+    [
+        dbc.Label("Select action", html_for="example-password"),
+        dcc.Dropdown(id='action-dropdown', multi=False),
+        dbc.FormText(
+            "You can select multiple actions.", color="secondary"
+        ),
+    ]
+)
+
+manual_action_instance = dbc.Row(
+    [
+        dbc.Col(action_input, width=2),
+        dbc.Col(
+            dbc.FormGroup(
+                [
+                    dbc.Label("Select Action Range", html_for="range-slider"),
+                    dcc.RangeSlider(id='action-time-slider',
+                                    min=1, max=100, value=[1, 5]),
+                    dbc.FormText(id='output-action-time-slider')
+                ]
+            ), width=8),
+        dbc.Col(button(add_action_instance_title,
+                show_title_maker, show_button_id), width="auto"),
+        dcc.ConfirmDialog(
+            id='confirm-add-action-instance',
+            message='Action pattern is added.',
+        ),
+    ],
+    className="h-25",
+)
+
+control_buttons = [
+    button(set_default_config_title, show_title_maker, show_button_id),
     button(start_title, show_title_maker, show_button_id),
-    button(stop_title, show_title_maker, show_button_id),
-    button(reset_title, show_title_maker, show_button_id),
+    button(move_forward_title, show_title_maker, show_button_id),
 ]
 
-tab1_content = dbc.Row(
-    dbc.Col(
-        [
-            html.Br(),
-            dbc.Row(
-                dbc.Col(html.Div(id="selected-marking"))
-            ),
-            # dbc.Row(
-            #     dbc.Col(html.Div(id='live-marking-text'))
-            # ),
-            # dbc.Row(
-            #     dbc.Col(html.Div(id='object-info'))
-            # ),
-            dbc.Row(
-                dbc.Col(html.Div(id='object-list'))
-            ),
-            dbc.Row(
-                dbc.Col(
-                    dash_table.DataTable(
-                        id='object-table'
-                    )
-                )
-            )
-        ]
-    )
-)
+show_impacted_objects_title = 'show impacted object types'
+show_impacted_functions_title = 'show impacted functions'
+show_impacted_object_instances_title = 'show impacted object instances'
+show_impacted_function_instances_title = 'show impacted function instances'
 
-tab2_content = dbc.Row(
+pre_impact_content = dbc.Row(
     [
         dbc.Col(
-            [
-                # dbc.Row(
-                #     dbc.Col(html.H4(''))
-                # ),
-                dbc.Row(
-                    dbc.Col(
-                        dash_table.DataTable(
-                            id='operation-table', columns=[]
-                        )
-                    )
-                )
-            ]
-        ),
-    ]
-)
-
-tab3_content = dbc.Row(
-    [
-        dbc.Col(
-            [
-                # dbc.Row(
-                #     dbc.Col(html.H4('Live action'))
-                # ),
-                html.Br(),
-                html.H3("Current Configuration"),
-                dbc.Row(
-                    dbc.Col(
-                        dash_table.DataTable(
-                            id='configuration-table',
-                            columns=[
-                                {'id': 'valve', 'name': 'Valve Name'},
-                                {'id': 'value', 'name': 'Current Value'}
-                            ]
-                        )
-                    )
+            id='conf-obj-impact',
+            children=[
+                dcc.Dropdown(id='conf-obj-impact-dropdown'),
+                daq.LEDDisplay(
+                    id='conf-obj-impact-display',
+                    value=0
                 ),
-                html.Br(),
-                html.H3("Action Log"),
-                dbc.Row(
-                    dbc.Col(html.Div(id='action-log-list'))
+                html.Div(
+                    [
+                        button(show_impacted_objects_title, show_title_maker,
+                               show_button_id),
+                        dbc.Collapse(
+                            dbc.Card(dbc.CardBody(
+                                "This content is hidden in the collapse"), id="conf-obj-impact-collapse-body"
+                            ),
+                            id="conf-obj-impact-collapse",
+                            is_open=False,
+                        ),
+                    ]
+                ),
+            ], width=3
+        ),
+        dbc.Col(
+            id='conf-func-impact',
+            children=[
+                dcc.Dropdown(id='conf-func-impact-dropdown'),
+                daq.LEDDisplay(
+                    id='conf-func-impact-display',
+                    value=0
+                ),
+                html.Div(
+                    [
+                        button(show_impacted_functions_title, show_title_maker,
+                               show_button_id),
+                        dbc.Collapse(
+                            dbc.Card(dbc.CardBody(
+                                "This content is hidden in the collapse"), id="conf-func-impact-collapse-body"
+                            ),
+                            id="conf-func-impact-collapse",
+                            is_open=False,
+                        ),
+                    ]
+                ),
+
+            ],
+            width=3
+        ),
+        dbc.Col(
+            id='run-object-impact',
+            children=[
+                dcc.Dropdown(id='run-obj-impact-dropdown'),
+                daq.LEDDisplay(
+                    id='run-obj-impact-display',
+                    value=0
+                ),
+                html.Div(
+                    [
+                        button(show_impacted_object_instances_title, show_title_maker,
+                               show_button_id),
+                        dbc.Collapse(
+                            dbc.Card(dbc.CardBody(
+                                "This content is hidden in the collapse"), id="run-obj-impact-collapse-body"
+                            ),
+                            id="run-obj-impact-collapse",
+                            is_open=False,
+                        ),
+                    ]
+                ),
+            ],
+            width=3
+        ),
+        dbc.Col(
+            id='run-function-impact',
+            children=[
+                dcc.Dropdown(id='run-func-impact-dropdown'),
+                daq.LEDDisplay(
+                    id='run-func-impact-display',
+                    value=0
+                ),
+                html.Div(
+                    [
+                        button(show_impacted_function_instances_title, show_title_maker,
+                               show_button_id),
+                        dbc.Collapse(
+                            dbc.Card(dbc.CardBody(
+                                "This content is hidden in the collapse"), id="run-func-impact-collapse-body"
+                            ),
+                            id="run-func-impact-collapse",
+                            is_open=False,
+                        ),
+                    ]
+                ),
+            ],
+            width=3
+        ),
+    ]
+)
+
+post_impact_content = dbc.Row(
+    [
+        dbc.Col(
+            id='obj-perf-impact',
+            children=[
+                dcc.Dropdown(id='object-dropdown'),
+                dcc.Dropdown(id='object-perf-dropdown'),
+                dcc.Dropdown(id='object-diag-dropdown'),
+                daq.LEDDisplay(
+                    id='obj-perf-impact-display',
+                    value=0
                 )
-
-            ]
+            ], width=4
+        ),
+        dbc.Col(
+            id='func-perf-impact',
+            children=[
+                dcc.Dropdown(id='function-dropdown'),
+                dcc.Dropdown(id='function-perf-dropdown'),
+                dcc.Dropdown(id='function-diag-dropdown'),
+                daq.LEDDisplay(
+                    id='func-perf-impact-display',
+                    value=0
+                )
+            ],
+            width=3
         ),
     ]
 )
 
-tabs = dbc.Tabs(
+impact_analysis_tabs = dbc.Tabs(
     [
-        dbc.Tab(tab2_content, label="Operation"),
-        dbc.Tab(tab1_content, label="State"),
-        dbc.Tab(tab3_content, label="Action")
+        dbc.Tab(pre_impact_content, label="Pre-Action Impact Analysis"),
+        dbc.Tab(post_impact_content, label="Post-Action Impact Analysis")
     ]
 )
 
-dashboard_view_content = dbc.Row(
+dashboard_content = dbc.Row(
     [
-        dcc.Store(id='ocpn-dashboard-dot', storage_type='session', data=""),
-        dcc.Store(id='token-map', storage_type='session'),
-        dcc.Store(id='log-dir', storage_type='session'),
-        dcc.Store(id='config-dir', storage_type='session'),
+        dcc.Store(id='ocpn-operational-view-dot',
+                  storage_type='session', data=""),
         dcc.Store(id='start-time', storage_type='session'),
-        dcc.Store(id='bin-size', storage_type='session'),
-        dcc.Store(id='action-log', storage_type='session', data=[]),
-        dbc.Col(
-            dash_interactive_graphviz.DashInteractiveGraphviz(
-                id="gv-dashboard"), width=6
-        ),
-        dbc.Col(
-            [
-                html.Div(id='current-timestamp'),
-                tabs
-            ], width=6
-        )
+        dcc.Store(id='step-size', storage_type='session', data=24),
+        dcc.Store(id='num-step', storage_type='session', data=100),
+        dcc.Store(id='click-data', storage_type='session'),
+        dcc.Store(id='default-config-dir', storage_type='session'),
+        dcc.Store(id='next-simulation-count', storage_type='session'),
+        dcc.Store(id='timeline-data', storage_type='session'),
+        dbc.Col(impact_analysis_tabs, width=12)
     ],
-    style=dict(position="absolute", height="100%",
-               width="100%", display="flex"),
+    className="h-25",
+    # style=dict(position="absolute", height="100%",
+    #            width="100%", display="flex"),
 )
 
-page_layout = container('Dashboard',
+operation_content = dbc.Row(
+    dash_table.DataTable(
+        id='operation-table', columns=[]
+    ), justify='center'
+)
+
+page_layout = container('Impact Analysis',
                         [
-                            uploads,
-                            sliders,
-                            single_row(html.Div(buttons)),
+                            html.H2("Simulation Control"),
+                            dbc.Row([
+                                dbc.Col(step_size_slider, width=6),
+                                dbc.Col(num_step_slider, width=6),
+                            ]),
+                            single_row(html.Div(control_buttons)),
+                            html.Div(id='current-timestamp'),
                             html.Hr(),
-                            dashboard_view_content
+                            html.H2("Add Action Instance"),
+                            # html.H2("Repository"),
+                            # table_name,
+                            # action_pattern_content,
+                            manual_action_instance,
+                            html.Hr(),
+                            html.H2("Timeline"),
+                            dcc.Graph(
+                                id="timeline-graph"),
+                            html.Hr(),
+                            html.H2("Impact Analysis"),
+                            dashboard_content,
+                            html.Hr(),
+                            html.H2("Operation Records"),
+                            operation_content
                         ]
                         )
 
 
 @app.callback(
-    Output("gv-dashboard", "dot_source"),
-    Output("gv-dashboard", "engine"),
+    Output("action-table", "data"),
     Input('url', 'pathname'),
-    Input("ocpn-dashboard-dot", "data")
+    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
+    State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
 )
-def show_ocpn(pathname, value):
-    if pathname == DASHBOARD_URL and value is not None:
-        return value, "dot"
-    return no_update(2)
+def load_tables(pathname, value, cview_jobs):
+    if pathname == DASHBOARD_URL:
+        action_table_data = []
+        user = request.authorization['username']
+        log_hash, date = read_global_signal_value(value)
+        dt = get_remote_data(user, log_hash, cview_jobs,
+                             AvailableTasks.STORE_CONFIG.value)
+        for action in dt.action_engine.action_repo:
+            action_table_data.append(
+                {"Action Name": action.name, "Description": "Test"})
+        return action_table_data
+    return dash.no_update
 
 
 @app.callback(
-    Output('ocpn-dashboard-dot', 'data'),
-    Input(show_button_id(load_ocpn_title), 'n_clicks'),
+    # Output('condition-dropdown', 'options'),
+    Output('action-dropdown', 'options'),
+    Input('url', 'pathname'),
     State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
-    State(global_signal_id_maker(PARSE_TITLE), 'children'),
     State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
-    State('ocpn-dashboard-dot', 'data')
 )
-def load_ocpn(n, value, old_value, control_jobs, old_dot):
-    if n is not None:
-        if value is None:
-            value = old_value
+def update_dropdowns(pathname, value, cview_jobs):
+    if pathname == DASHBOARD_URL:
         user = request.authorization['username']
         log_hash, date = read_global_signal_value(value)
-        dt = get_remote_data(user, log_hash, control_jobs,
-                             AvailableTasks.BUILD.value)
-        gviz = dt_vis_factory.apply(dt, parameters={"format": "svg"})
-        dt_dot = str(gviz)
-        return dt_dot
-    return old_dot
+        dt = get_remote_data(user, log_hash, cview_jobs,
+                             AvailableTasks.STORE_CONFIG.value)
+        action_options = [{'label': action.name,
+                           'value': action.name} for action in dt.action_engine.action_repo]
+        constraint_options = [{'label': constraint.name,
+                               'value': constraint.name} for constraint in dt.action_engine.constraint_repo]
+        return action_options
+    return dash.no_update
+
+
+def awrite(writer, data):
+    writer.write(data)
+    # await writer.drain()
+    writer.flush()
 
 
 @app.callback(
     Output('interval-component', 'disabled'),
     Output('start-time', 'data'),
-    Output('interval-component', 'n_intervals'),
+    Output('current-timestamp', 'children'),
+    Output('next-simulation-count', 'data'),
     Input(show_button_id(start_title), 'n_clicks'),
-    Input(show_button_id(stop_title), 'n_clicks'),
-    Input(show_button_id(reset_title), 'n_clicks'),
-    State("interval-component", "disabled")
+    Input(show_button_id(move_forward_title), 'n_clicks'),
+    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
+    State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
+    State('start-time', 'data'),
+    State('interval-component', 'disabled'),
+    State('interval-component', 'interval'),
+    State('interval-component', 'n_intervals'),
+    State('step-size', 'data'),
+    State('action-pattern-repository', 'data'),
+    State('next-simulation-count', 'data'),
 )
-def start_operation(n_start, n_stop, n_reset, disabled):
+def callback_control_simulation(n_start, n_stop, value, dashboard_jobs, start_time, disabled, interval, n_intervals, step_size, action_pattern_repo, next_sim_count):
     ctx = dash.callback_context
     if not ctx.triggered:
         button_id = 'No clicks yet'
@@ -252,223 +474,445 @@ def start_operation(n_start, n_stop, n_reset, disabled):
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
         button_value = ctx.triggered[0]['value']
     if button_id == show_button_id(start_title):
-        if n_start is not None:
-            return False, str(datetime.datetime.now()), dash.no_update
-    elif button_id == show_button_id(stop_title):
-        return True, dash.no_update, dash.no_update
-    elif button_id == show_button_id(reset_title):
-        return True, str(datetime.datetime.now()), 0
-    return no_update(3)
+        proc = get_proc()
+        awrite(proc.stdin, b"start\n")
+        return True, datetime.now().strftime(time_utils.DATETIME_FORMAT), datetime.now().strftime(time_utils.DATETIME_FORMAT), 0
+    elif button_id == show_button_id(move_forward_title):
+        proc = get_proc()
+        awrite(proc.stdin, b"resume\n")
+        start_timestamp = datetime.strptime(
+            start_time, time_utils.DATETIME_FORMAT) + timedelta(hours=interval/1000*n_intervals-step_size)
+        start_timestamp = time_utils.make_timezone_aware(start_timestamp)
+        end_timestamp = datetime.strptime(
+            start_time, time_utils.DATETIME_FORMAT) + timedelta(hours=interval/1000*n_intervals)
+        end_timestamp = time_utils.make_timezone_aware(end_timestamp)
 
-
-def group_item(name, index):
-    return dbc.ListGroupItem(name, id={"type": "object-item", "index": index}, n_clicks=0, action=True)
-
-
-@app.callback(
-    Output("selected-marking", "children"),
-    # Output("live-marking-text", "children"),
-    # Output('object-info', 'children'),
-    Output('object-list', 'children'),
-    Output('object-table', 'columns'),
-    Output('object-table', 'data'),
-    Input("gv-dashboard", "selected"),
-    State('token-map', 'data'),
-    State('log-dir', 'data'),
-)
-def show_selected(value, token_map, filename):
-    if value is not None and token_map is not None:
-        # selected_tokens = [[pl, oi]
-        #                    for pl, oi in tokens if str(value) == str(pl)]
-        token_map = json.loads(token_map)
-        if value in token_map:
-            object_ids = token_map[value]
-            data = ocel_import_factory.apply(filename)
-            object_df = data[1]
-            object_df = mdl_preprocess_factory.filter_object_df_by_object_ids(
-                object_df, object_ids)
-            object_table_columns = [{"name": i, "id": i}
-                                    for i in object_df.columns]
-            object_table_data = object_df.to_dict('records')
-            object_list = [
-                dbc.Button(x, id={
-                    'type': 'object-button',
-                    'index': x
-                }, name=x, outline=True, color="info", className="mr-1") for x in token_map[value]
-            ]
-            object_list_group = dbc.ListGroup(
-                [group_item(name, index)
-                 for index, name in enumerate(token_map[value])],
-                horizontal=True,
-                className="mb-2"
-            )
-            object_info_list = []
-            for index, name in enumerate(token_map[value]):
-                object_info_list.append(
-                    html.Div(
-                        id={
-                            'type': 'dynamic-output',
-                            'index': index
-                        }
-                    )
-                )
-
-            return html.Div("Marking at {}".format(value)), \
-                html.Div(object_list), \
-                object_table_columns, \
-                object_table_data
-            # html.Div(object_list_group), \
-            # html.Div(object_info_list), \
-
-        else:
-            return html.Div("Marking at {}".format(value)), \
-                no_update(3)
-
-    else:
-        return no_update(4)
+        return True, dash.no_update, end_timestamp.strftime(time_utils.DATETIME_FORMAT), next_sim_count+1
+    return no_update(4)
 
 
 @app.callback(
-    Output('operation-table', 'columns'),
-    Output('operation-table', 'data'),
-    Output('configuration-table', 'data'),
-    Output(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
-    Output('token-map', 'data'),
-    Output('current-timestamp', 'children'),
-    Output('action-log', 'data'),
-    Output('action-log-list', 'children'),
-    Input('interval-component', 'disabled'),
-    Input('interval-component', 'interval'),
-    Input('interval-component', 'n_intervals'),
-    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
-    State(global_signal_id_maker(PARSE_TITLE), 'children'),
-    State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
-    State('start-time', 'data'),
-    State('log-dir', 'data'),
-    State('config-dir', 'data'),
-    State('bin-size', 'data'),
-    State('action-pattern-repository', 'data'),
-    State('action-log', 'data'),
+    Output('output-action-time-slider', 'children'),
+    Input('action-time-slider', 'value')
 )
-def run_operation(disabled, interval, n_intervals, value, old_value, control_jobs, start_time, log_dir, config_dir, bin_size, action_pattern_repo, action_log):
-    if disabled == False and (old_value is not None or value is not None):
-        if value is None:
-            value = old_value
-        print("streaming from {}".format(log_dir))
-        print("configuration from {}".format(config_dir))
-        data = ocel_import_factory.apply(log_dir)
-        event_df = data[0]
-        start_timestamp = parser.parse(
-            start_time) + datetime.timedelta(hours=interval/1000*n_intervals-bin_size)
-        end_timestamp = parser.parse(
-            start_time) + datetime.timedelta(hours=interval/1000*n_intervals)
-        sublog = mdl_preprocess_factory.filter_by_timestamp(
-            event_df, start_timestamp=start_timestamp, end_timestamp=end_timestamp)
-        if len(sublog) == 0:
-            print("no events")
-        user = request.authorization['username']
-        log_hash, date = read_global_signal_value(value)
-        # if log_hash not in dashboard_jobs[JOBS_KEY]:
-        #     dt = get_remote_data(user, log_hash, control_jobs,
-        #                          AvailableTasks.BUILD.value)
-        # else:
-        #     dt = get_remote_data(user, log_hash, dashboard_jobs,
-        #                          AvailableTasks.OPERATE.value)
-        if AvailableTasks.OPERATE.value not in control_jobs[JOBS_KEY][log_hash][JOB_TASKS_KEY]:
-            dt = get_remote_data(user, log_hash, control_jobs,
-                                 AvailableTasks.BUILD.value)
-        else:
-            dt = get_remote_data(user, log_hash, control_jobs,
-                                 AvailableTasks.OPERATE.value)
-
-        # update marking
-        dt.marking = oper_factory.apply(dt.ocpn, sublog, dt.marking)
-        token_map = {}
-        for pl, oi in dt.marking.tokens:
-            if pl.name not in token_map.keys():
-                token_map[pl.name] = [oi]
-            else:
-                token_map[pl.name].append(oi)
-
-        # store digital twin
-        task_id = run_task(control_jobs, log_hash, AvailableTasks.OPERATE.value,
-                           store_redis_backend, data=dt)
-        operation_table_columns = [{"name": i, "id": i}
-                                   for i in sublog.columns]
-        operation_table_data = sublog.to_dict('records')
-
-        # interval/1000 since dash uses milliseconds
-        event_df = succint_mdl_to_exploded_mdl(event_df)
-        action_log_at_t, exp_log = evaluation_factory.evaluate(
-            action_pattern_repo, dt, event_df, end_timestamp, interval/1000, n_intervals, config_dir)
-        if len(action_log_at_t) != 0:
-            action_log += action_log_at_t
-
-        # maintain X action events
-        if len(action_log) > 10:
-            action_log = action_log[-10:]
-
-        action_log_list = dbc.ListGroup(
-            [dbc.ListGroupItem(event)
-             for event in reversed(action_log)],
-            className="mb-2"
-        )
-
-        config = evaluation_factory.read_config(config_dir)
-        configuration_table_data = transform_config_to_datatable_dict(
-            config)
-
-        return operation_table_columns, \
-            operation_table_data, \
-            configuration_table_data, \
-            control_jobs, json.dumps(token_map), \
-            end_timestamp.strftime("%Y-%m-%d, %H:%M:%S"), \
-            action_log, \
-            html.Div(action_log_list)
-
-    return no_update(8)
-
-
-@ app.callback(
-    Output('log-dir', 'data'),
-    Output('config-dir', 'data'),
-    Input('upload-system-config', 'contents'),
-    State('log-dir', 'data'),
-    State('config-dir', 'data'),
-)
-def connect_to_system(content, old_log_dir, old_config_dir):
-    if content is not None:
-        data, success = parse_contents(content, JSON)
-        log_dir = data['dir-event-stream']
-        config_dir = data['dir-system-config']
-        return log_dir, config_dir
-    else:
-        return old_log_dir, old_config_dir
-
-
-@app.callback(
-    Output('output-bin-size-slider', 'children'),
-    Output('bin-size', 'data'),
-    Input('bin-size-slider', 'value')
-)
-def update_output(value):
-    return 'The operation and state will consider previous {} hours.'.format(abs(value[0])), abs(value[0])
+def update_action_time(action_time_value):
+    return 'The action will be efective from {} to {}'.format(action_time_value[0], action_time_value[1])
 
 
 @app.callback(
     Output('output-step-size-slider', 'children'),
     Output('interval-component', 'interval'),
+    Output('step-size', 'data'),
     Input('step-size-slider', 'value')
 )
-def update_output(value):
-    return 'The operation and state will be updated every {} hours'.format(abs(value[1])), abs(value[1])*1000
+def update_step_size(value):
+    return 'Each step moves forward {} hours.'.format(value), value*1000, value
 
 
 @app.callback(
-    Output({"type": "dynamic-output", "index": MATCH}, "children"),
-    # Output({"type": "object-item", "index": MATCH}, "children"),
-    Input({"type": "object-item", "index": MATCH}, "n_clicks"),
-    State({"type": "object-item", "index": MATCH}, "children")
+    Output('output-num-step-slider', 'children'),
+    Output('num-step', 'data'),
+    Input('num-step-slider', 'value')
 )
-def clicked(n_click, children):
-    return children
+def update_step_size(value):
+    return f'Simulation continues up to {value} steps', value
+
+
+@ app.callback(
+    Output(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
+    Output('timeline-data', 'data'),
+    Output('operation-table', 'columns'),
+    Output('operation-table', 'data'),
+    Output('token-map', 'data'),
+    Input(show_button_id(set_default_config_title), 'n_clicks'),
+    Input(show_button_id(add_action_instance_title), 'n_clicks'),
+    Input('next-simulation-count', 'data'),
+    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
+    State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
+    State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
+    State('action-dropdown', 'value'),
+    State('action-time-slider', 'value'),
+    State('timeline-data', 'data'),
+    State('log-dir', 'data'),
+    State('start-time', 'data'),
+    State('step-size', 'data'),
+    State('num-step', 'data')
+)
+def callback_set_default_config(n_default, n_add, next_sim_count, value, cview_jobs, dashboard_jobs, selected_action_name, action_time_value, timeline_data, log_dir, start_time, step_size, num_step):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        button_id = 'No clicks yet'
+    else:
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        button_value = ctx.triggered[0]['value']
+    if button_value is not None:
+        if button_id == show_button_id(set_default_config_title):
+            log_hash, date = read_global_signal_value(value)
+            user = request.authorization['username']
+            dt = get_remote_data(user, log_hash, cview_jobs,
+                                 AvailableTasks.STORE_CONFIG.value)
+            dt.action_engine.clear_action_instances()
+            task_id = run_task(
+                cview_jobs, log_hash, AvailableTasks.SIMULATE.value, store_redis_backend, data=dt)
+            ft = datetime.strptime(
+                start_time, time_utils.DATETIME_FORMAT) + timedelta(days=num_step)
+            timeline_data = [
+                dict(Task="Simulation", Start=start_time, Finish=ft.strftime(time_utils.DATETIME_FORMAT), InstanceName='Simulation')]
+            return cview_jobs, timeline_data, dash.no_update, dash.no_update, dash.no_update
+        elif button_id == show_button_id(add_action_instance_title):
+            log_hash, date = read_global_signal_value(value)
+            user = request.authorization['username']
+            dt = get_remote_data(user, log_hash, dashboard_jobs,
+                                 AvailableTasks.SIMULATE.value)
+            ai = dt.action_engine.add_action_instance(
+                selected_action_name, action_time_value[0], action_time_value[1])
+            task_id = run_task(
+                dashboard_jobs, log_hash, AvailableTasks.SIMULATE.value, store_redis_backend, data=dt)
+            st = datetime.strptime(start_time, time_utils.DATETIME_FORMAT) + \
+                timedelta(hours=ai.start*step_size)
+            ft = datetime.strptime(start_time, time_utils.DATETIME_FORMAT) + \
+                timedelta(hours=ai.end*step_size)
+            timeline_data.append(dict(
+                Task=ai.action.name, Start=st.strftime(time_utils.DATETIME_FORMAT), Finish=ft.strftime(time_utils.DATETIME_FORMAT), InstanceName=ai.name))
+            return dashboard_jobs, timeline_data, dash.no_update, dash.no_update, dash.no_update
+        elif button_id == 'next-simulation-count' and next_sim_count > 0:
+            log_hash, date = read_global_signal_value(value)
+            user = request.authorization['username']
+            dt = get_remote_data(user, log_hash, dashboard_jobs,
+                                 AvailableTasks.SIMULATE.value)
+            # update operational views
+            print("streaming event data from {}".format(log_dir))
+            data = ocel_import_factory.apply(log_dir)
+            event_df = data[0]
+            sublog = event_df
+            if len(sublog) == 0:
+                print("no events")
+            dt.marking = oper_factory.apply(dt.ocpn, sublog, dt.marking)
+            token_map = {}
+            for pl, oi in dt.marking.tokens:
+                if pl.name not in token_map.keys():
+                    token_map[pl.name] = [oi]
+                else:
+                    token_map[pl.name].append(oi)
+            operation_table_columns = [{"name": i, "id": i}
+                                       for i in sublog.columns]
+            operation_table_data = sublog.to_dict('records')
+
+            # apply action instance & compute pre impacts
+            dt.action_engine.apply_action_instance(
+                dt, next_sim_count, event_df)
+
+            task_id = run_task(
+                dashboard_jobs, log_hash, AvailableTasks.SIMULATE.value, store_redis_backend, data=dt)
+
+            return dashboard_jobs, dash.no_update, operation_table_columns, operation_table_data, json.dumps(token_map)
+        else:
+            return no_update(5)
+    else:
+        return no_update(5)
+
+
+@app.callback(
+    Output('timeline-graph', 'figure'),
+    Input('timeline-data', 'data'),
+    Input('next-simulation-count', 'data'),
+)
+def update_timeline_graph(timeline_data, next_sim_count):
+    if timeline_data is not None:
+        return impact_visualizer.draw_gannt_chart(timeline_data, next_sim_count)
+    else:
+        dash.no_update
+
+
+@app.callback(
+    Output('click-data', 'data'),
+    Input('timeline-graph', 'clickData'),
+)
+def update_click_data(click_data):
+    if click_data is not None:
+        return click_data
+    else:
+        return dash.no_update
+
+
+@app.callback(
+    Output('conf-obj-impact-dropdown', 'options'),
+    Output('conf-obj-impact-dropdown', 'value'),
+    Output('conf-func-impact-dropdown', 'options'),
+    Output('conf-func-impact-dropdown', 'value'),
+    Output('run-obj-impact-dropdown', 'options'),
+    Output('run-obj-impact-dropdown', 'value'),
+    Output('run-func-impact-dropdown', 'options'),
+    Output('run-func-impact-dropdown', 'value'),
+    Output('object-dropdown', 'options'),
+    Output('object-dropdown', 'value'),
+    Output('object-perf-dropdown', 'options'),
+    Output('object-perf-dropdown', 'value'),
+    Output('function-dropdown', 'options'),
+    Output('function-dropdown', 'value'),
+    Output('function-perf-dropdown', 'options'),
+    Output('function-perf-dropdown', 'value'),
+    Input('timeline-graph', 'clickData'),
+    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
+    State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
+    State('timeline-graph', 'figure'),
+)
+def update_impact_analysis_panel(click_data, value, dashboard_jobs, figure):
+    if click_data is not None:
+        conf_obj_options = [{'label': metric.value, 'value': metric.value}
+                            for metric in AvailableConfObjImpact]
+        conf_obj_value = list(AvailableConfObjImpact)[0].value
+
+        conf_func_options = [{'label': metric.value, 'value': metric.value}
+                             for metric in AvailableConfFuncImpact]
+        conf_func_value = list(AvailableConfFuncImpact)[0].value
+
+        run_obj_options = [{'label': metric.value, 'value': metric.value}
+                           for metric in AvailableRunObjImpact]
+        run_obj_value = list(AvailableRunObjImpact)[0].value
+
+        run_func_options = [{'label': metric.value, 'value': metric.value}
+                            for metric in AvailableRunFuncImpact]
+        run_func_value = list(AvailableRunFuncImpact)[0].value
+
+        obj_perf_options = [{'label': metric.value, 'value': metric.value}
+                            for metric in AvailableObjPerformanceMetric]
+        obj_perf_value = list(AvailableObjPerformanceMetric)[0].value
+
+        func_perf_options = [{'label': metric.value, 'value': metric.value}
+                             for metric in AvailableFuncPerformanceMetric]
+        func_perf_value = list(AvailableFuncPerformanceMetric)[0].value
+
+        log_hash, date = read_global_signal_value(value)
+        user = request.authorization['username']
+        dt = get_remote_data(user, log_hash, dashboard_jobs,
+                             AvailableTasks.SIMULATE.value)
+        action_instance_name = click_data["points"][0]['text']
+        ai = dt.action_engine.get_action_instance(
+            action_instance_name)
+        if ai.post_obj_impact is not None:
+            obj_options = [{'label': ot, 'value': ot}
+                           for ot in ai.impacted_objects]
+            # obj_value = obj_types[0]
+
+            func_options = [{'label': tr.name, 'value': tr.name}
+                            for tr in ai.impacted_functions]
+            # func_value = funcs[0]
+
+            return conf_obj_options, conf_obj_value, conf_func_options, conf_func_value, run_obj_options, run_obj_value, run_func_options, run_func_value, obj_options, dash.no_update, obj_perf_options, obj_perf_value, func_options, dash.no_update, func_perf_options, func_perf_value
+        else:
+            return conf_obj_options, conf_obj_value, conf_func_options, conf_func_value, run_obj_options, run_obj_value, run_func_options, run_func_value, *no_update(8)
+
+    return no_update(16)
+
+
+@app.callback(
+    Output('object-diag-dropdown', 'options'),
+    # Output('object-diag-dropdown', 'value'),
+    Input('object-dropdown', 'value'),
+    Input('object-perf-dropdown', 'value'),
+    State('timeline-graph', 'clickData'),
+    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
+    State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
+)
+def update_impact_analysis_panel(obj, obj_perf, click_data, value, dashboard_jobs):
+    log_hash, date = read_global_signal_value(value)
+    user = request.authorization['username']
+    dt = get_remote_data(user, log_hash, dashboard_jobs,
+                         AvailableTasks.SIMULATE.value)
+    action_instance_name = click_data["points"][0]['text']
+    ai = dt.action_engine.get_action_instance(
+        action_instance_name)
+    if obj is not None:
+        obj_diag_options = [{'label': d, 'value': d}
+                            for d in ai.get_obj_impact_diagnostics(obj, obj_perf)]
+
+        return obj_diag_options
+    else:
+        return dash.no_update
+
+
+@app.callback(
+    Output('function-diag-dropdown', 'options'),
+    # Output('object-diag-dropdown', 'value'),
+    Input('function-dropdown', 'value'),
+    Input('function-perf-dropdown', 'value'),
+    State('timeline-graph', 'clickData'),
+    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
+    State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
+)
+def update_impact_analysis_panel(func, func_perf, click_data, value, dashboard_jobs):
+    log_hash, date = read_global_signal_value(value)
+    user = request.authorization['username']
+    dt = get_remote_data(user, log_hash, dashboard_jobs,
+                         AvailableTasks.SIMULATE.value)
+    action_instance_name = click_data["points"][0]['text']
+    ai = dt.action_engine.get_action_instance(
+        action_instance_name)
+    if func is not None:
+        func_diag_options = [{'label': d, 'value': d}
+                             for d in ai.get_func_impact_diagnostics(func, func_perf)]
+
+        return func_diag_options
+    else:
+        return dash.no_update
+
+
+@app.callback(
+    Output('conf-obj-impact-display', 'value'),
+    Output('conf-func-impact-display', 'value'),
+    Output('run-obj-impact-display', 'value'),
+    Output('run-func-impact-display', 'value'),
+    Output('conf-obj-impact-collapse-body', 'children'),
+    Output('conf-func-impact-collapse-body', 'children'),
+    Output('run-obj-impact-collapse-body', 'children'),
+    Output('run-func-impact-collapse-body', 'children'),
+    Input('conf-obj-impact-dropdown', 'value'),
+    Input('conf-func-impact-dropdown', 'value'),
+    Input('run-obj-impact-dropdown', 'value'),
+    Input('run-func-impact-dropdown', 'value'),
+    State('timeline-graph', 'clickData'),
+    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
+    State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
+)
+def update_pre_impact_analysis(conf_obj_metric, conf_func_metric, run_obj_metric, run_func_metric, click_data, value, dashboard_jobs):
+    if click_data is not None:
+        log_hash, date = read_global_signal_value(value)
+        user = request.authorization['username']
+        dt = get_remote_data(user, log_hash, dashboard_jobs,
+                             AvailableTasks.SIMULATE.value)
+        action_instance_name = click_data["points"][0]['text']
+        ai = dt.action_engine.get_action_instance(
+            action_instance_name)
+        return ai.pre_impact[conf_obj_metric], ai.pre_impact[conf_func_metric], ai.pre_impact[run_obj_metric], ai.pre_impact[run_func_metric], \
+            dcc.Checklist(
+                options=[
+                    {'label': obj, 'value': obj} for obj in ai.impacted_objects
+                ],
+                value=[obj for obj in ai.impacted_objects]
+        ), \
+            dcc.Checklist(
+                options=[
+                    {'label': tr.name, 'value': tr.name} for tr in ai.impacted_functions
+                ],
+                value=[tr.name for tr in ai.impacted_functions]
+        ), \
+            dcc.Checklist(
+                options=[
+                    {'label': obj, 'value': obj} for obj in ai.impacted_obj_instances
+                ],
+                value=[obj for obj in ai.impacted_obj_instances]
+        ), \
+            dcc.Checklist(
+                options=[
+                    {'label': obj, 'value': obj} for obj in ai.impacted_func_instances
+                ],
+                value=[obj for obj in ai.impacted_func_instances]
+        )
+
+    return no_update(5)
+
+
+@app.callback(
+    Output('obj-perf-impact-display', 'value'),
+    Input('object-dropdown', 'value'),
+    Input('object-perf-dropdown', 'value'),
+    State('timeline-graph', 'clickData'),
+    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
+    State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
+    State('timeline-graph', 'figure'),
+)
+def update_obj_post_impact_analysis(obj_type, obj_perf_metric, click_data, value, dashboard_jobs, figure):
+    if click_data is not None:
+        if obj_type is not None and obj_perf_metric is not None:
+            log_hash, date = read_global_signal_value(value)
+            user = request.authorization['username']
+            dt = get_remote_data(user, log_hash, dashboard_jobs,
+                                 AvailableTasks.SIMULATE.value)
+            action_instance_name = click_data["points"][0]['text']
+            ai = dt.action_engine.get_action_instance(
+                action_instance_name)
+            if ai.post_obj_impact is not None:
+                replay_metric = REPLAY_DIAGNOSTICS_MAP[obj_perf_metric]
+                return ai.post_obj_impact[replay_metric][obj_type]
+            else:
+                dash.no_update
+        else:
+            dash.no_update
+    return dash.no_update
+
+
+@app.callback(
+    Output('func-perf-impact-display', 'value'),
+    Input('function-diag-dropdown', 'value'),
+    State('function-dropdown', 'value'),
+    State('function-perf-dropdown', 'value'),
+    State('timeline-graph', 'clickData'),
+    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
+    State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
+    State('timeline-graph', 'figure'),
+)
+def update_func_post_impact_analysis(func_diag, func, func_perf_metric, click_data, value, dashboard_jobs, figure):
+    if click_data is not None:
+        if func_diag is not None and func_perf_metric is not None:
+            log_hash, date = read_global_signal_value(value)
+            user = request.authorization['username']
+            dt = get_remote_data(user, log_hash, dashboard_jobs,
+                                 AvailableTasks.SIMULATE.value)
+            action_instance_name = click_data["points"][0]['text']
+            ai = dt.action_engine.get_action_instance(
+                action_instance_name)
+            if ai.post_func_impact is not None:
+                print(ai.post_func_impact)
+                print(ai.post_func_impact[func_perf_metric][func_diag])
+                return ai.post_func_impact[func_perf_metric][func_diag]
+            else:
+                dash.no_update
+        else:
+            dash.no_update
+
+    return dash.no_update
+
+
+@app.callback(
+    Output("conf-obj-impact-collapse", "is_open"),
+    Input(show_button_id(show_impacted_objects_title), 'n_clicks'),
+    [State("conf-obj-impact-collapse", "is_open")],
+)
+def toggle_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
+
+
+@app.callback(
+    Output("conf-func-impact-collapse", "is_open"),
+    Input(show_button_id(show_impacted_functions_title), 'n_clicks'),
+    [State("conf-func-impact-collapse", "is_open")],
+)
+def toggle_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
+
+
+@app.callback(
+    Output("run-obj-impact-collapse", "is_open"),
+    Input(show_button_id(show_impacted_object_instances_title), 'n_clicks'),
+    [State("run-obj-impact-collapse", "is_open")],
+)
+def toggle_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
+
+
+@app.callback(
+    Output("run-func-impact-collapse", "is_open"),
+    Input(show_button_id(show_impacted_function_instances_title), 'n_clicks'),
+    [State("run-func-impact-collapse", "is_open")],
+)
+def toggle_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open

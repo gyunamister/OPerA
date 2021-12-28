@@ -17,7 +17,6 @@ def apply(dt, parameters=None):
         parameters = {}
 
     ocpn = dt.ocpn
-    guards = dt.guards
 
     image_format = "png"
     if "format" in parameters:
@@ -62,17 +61,15 @@ def apply(dt, parameters=None):
         # this_uuid = str(uuid.uuid4())
         this_uuid = "t%d" % (tr_count)
         tr_count += 1
-        if tr.name in guards.keys():
-            guard = guards[tr.name]
-            if "<" in guard:
-                guard = guard.replace("<", "&lt;")
-            if ">" in guard:
-                guard = guard.replace(">", "&gt;")
-        else:
-            guard = None
+        guard = dt.get_guard(tr)
+        if guard is not None:
+            if "<" in guard.expression:
+                guard.expression = guard.expression.replace("<", "&lt;")
+            if ">" in guard.expression:
+                guard.expression = guard.expression.replace(">", "&gt;")
         if tr.silent == True:
             if guard is not None:
-                g.node(this_uuid, this_uuid, fontcolor="#FFFFFF", shape="box", xlabel='''<<FONT POINT-SIZE="11">%s</FONT>>''' % (guard),
+                g.node(this_uuid, this_uuid, fontcolor="#FFFFFF", shape="box", xlabel='''<<FONT POINT-SIZE="11">%s</FONT>>''' % (guard.expression),
                        fillcolor="#000000", style="filled", labelfontsize="18.0")
             else:
                 g.node(this_uuid, this_uuid, fontcolor="#FFFFFF", shape="box",
@@ -81,7 +78,7 @@ def apply(dt, parameters=None):
         elif tr.name not in trans_names:
             if guard is not None:
                 g.node(this_uuid, tr.name, shape="box",
-                       fontsize="36.0", xlabel='''<<FONT POINT-SIZE="18">%s</FONT>>''' % (guard), labelfontsize="36.0")
+                       fontsize="36.0", xlabel='''<<FONT POINT-SIZE="18">%s</FONT>>''' % (guard.expression), labelfontsize="36.0")
             else:
                 g.node(this_uuid, tr.name, shape="box",
                        fontsize="36.0", labelfontsize="36.0")

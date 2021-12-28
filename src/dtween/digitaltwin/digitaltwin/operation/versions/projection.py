@@ -1,8 +1,7 @@
 from ocpa.objects.oc_petri_net.obj import ObjectCentricPetriNet
 from ocpa.objects.oc_petri_net.obj import Marking
 import pandas as pd
-# from pm4pymdl.algo.mvp.utils import succint_mdl_to_exploded_mdl
-from ocpa.objects.log.importer.mdl.factory import succint_mdl_to_exploded_mdl
+from ocpa.objects.log.importer.mdl.util import succint_mdl_to_exploded_mdl
 
 
 def apply(ocpn, log, marking=None, parameters=None):

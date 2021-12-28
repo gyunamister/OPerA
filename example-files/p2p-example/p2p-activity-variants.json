@@ -1,0 +1,64 @@
+{
+    "activity_variants": {
+        "Plan Purchase Requisition 1": {
+            "description": {
+                "material": [
+                    "planned_delivery_days"
+                ]
+            },
+            "default": "Plan Purchase Requisition"
+        },
+        "Create Purchase Requisition 1": {
+            "description": {
+                "material": [
+                    "net_price",
+                    "effective_price",
+                    "diff_issue",
+                    "quantity"
+                ]
+            },
+            "default": "Create Purchase Requisition"
+        },
+        "Verify Material 1": {
+            "description": {
+                "material": [
+                    "verified"
+                ]
+            },
+            "default": "Verify Material"
+        },
+        "Verify Material 2": {
+            "description": {
+                "material": [
+                    "verified",
+                    "quantity"
+                ]
+            },
+            "default": ""
+        },
+        "Receive Goods 1": {
+            "description": {
+                "material": [
+                    "diff_quantity"
+                ]
+            },
+            "default": "Receive Goods"
+        },
+        "Receive Invoice 1": {
+            "description": {
+                "material": [
+                    "diff_amount"
+                ]
+            },
+            "default": "Receive Invoice"
+        },
+        "Issue Invoice Receipt 1": {
+            "description": {
+                "material": [
+                    "diff_assigned_amount"
+                ]
+            },
+            "default": "Issue Invoice Receipt"
+        }
+    }
+}

@@ -75,6 +75,14 @@ BUTTON_STYLE = {
     "background-color": PRIMARY
 }
 
+TAB_STYLE = {
+    "font-family": "Roboto,sans-serif",
+    "font-weight": "400",
+    "color": PRIMARY,
+    "text-align": "center",
+    "transition": "all 0.2s"
+}
+
 BUTTON_LEFT_STYLE = {
     "font-family": "Roboto,sans-serif",
     "font-weight": "400",

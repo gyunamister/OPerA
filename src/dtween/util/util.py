@@ -2,6 +2,27 @@ import operator
 from dtween.available.available import AvailablePlaceDiagnostics, AvailableTransitionDiagnostics, AvailableFlowDiagnostics, AvailableDiagnostics
 from dtween.available.constants import EVENT_FILTER, OBJECT_FILTER
 
+PERF_METRIC_NAME_MAP = {
+    'throughput time'.title(): 'throughput',
+    'sojourn time'.title(): 'sojourn',
+    'waiting time'.title(): 'waiting',
+    'synchronization time'.title(): 'synchronization',
+    'coherent synchronization time'.title(): 'coherent_synchronization',
+    'inherent synchronization time'.title(): 'inherent_synchronization',
+    'absolute frequency'.title(): 'absolute_freq',
+    'object frequency'.title(): 'object_freq',
+    'object type frequency'.title(): 'object_type_freq',
+    'interacting activity frequency'.title(): 'interacting_act_freq',
+}
+
+AGG_NAME_MAP = {
+    'average'.title(): 'avg',
+    'median'.title(): 'med',
+    'standard deviation'.title(): 'std',
+    'minimum'.title(): 'min',
+    'maximum'.title(): 'max',
+}
+
 DIAGNOSTICS_NAME_MAP = {
     'activity frequency'.title(): 'act_count',
     'avg. group size'.title(): 'mean_group_size',
@@ -53,7 +74,16 @@ REPLAY_DIAGNOSTICS_MAP = {
     AvailableDiagnostics.ACT_PROB.value: '',
     AvailableDiagnostics.TOTAL_LOGMOVE.value: '',
     AvailableDiagnostics.TOTAL_REWORK.value: '',
-    AvailableDiagnostics.TOTAL_MODELMOVE.value: ''
+    AvailableDiagnostics.TOTAL_MODELMOVE.value: '',
+    AvailableDiagnostics.AVG_THROUGHPUT_TIME.value: '',
+    AvailableDiagnostics.MED_THROUGHPUT_TIME.value: '',
+    AvailableDiagnostics.MIN_THROUGHPUT_TIME.value: '',
+    AvailableDiagnostics.MAX_THROUGHPUT_TIME.value: '',
+    AvailableDiagnostics.AVG_TOTAL_SERVICE_TIME.value: '',
+    AvailableDiagnostics.MED_TOTAL_SERVICE_TIME.value: '',
+    AvailableDiagnostics.MIN_TOTAL_SERVICE_TIME.value: '',
+    AvailableDiagnostics.MAX_TOTAL_SERVICE_TIME.value: ''
+
 }
 
 DIAGNOSTICS_FILTER_MAP = {

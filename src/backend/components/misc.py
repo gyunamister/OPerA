@@ -3,7 +3,7 @@ import dash_bootstrap_components as dbc
 import dash_html_components as html
 from backend.components.navbar import navbar
 from backend.param.constants import CB_TYPE_INSPECT, CB_TYPE_LOG, FORM_PREFIX, SIGNAL_PREFIX, CB_TYPE_INTERPRETATION
-from backend.param.styles import BUTTON_STYLE, BUTTON_TOOLTIP_STYLE
+from backend.param.styles import BUTTON_STYLE, BUTTON_TOOLTIP_STYLE, TAB_STYLE
 
 
 def log_header(log_title):
@@ -169,6 +169,18 @@ def use_log_button(index, style=BUTTON_STYLE):
         className="mb-3",
         style=style
     )]
+
+# dbc.Tab(tab_content,
+#                                         label="Upload", tab_id='upload', label_style={"color": "#00AEF9"}),
+
+
+def tab(tab_content, label, title_maker, id_maker, style=TAB_STYLE):
+    return dbc.Tab(
+        tab_content,
+        label=title_maker(label),
+        tab_id=id_maker(label),
+        label_style=style
+    )
 
 
 def button(title, title_maker, id_maker, style=BUTTON_STYLE, href=None):
