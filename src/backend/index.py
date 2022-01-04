@@ -42,6 +42,7 @@ app.layout = html.Div([
     dcc.Store(id='valve-store', storage_type='session'),
     dcc.Store(id='write-store', storage_type='session'),
     dcc.Store(id='activity-variant-store', storage_type='session'),
+    dcc.Store(id='action-definition', storage_type='session', data={}),
     dcc.Store(id='log-dir', storage_type='session'),
     dcc.Store(id='config-dir', storage_type='session'),
     dcc.Store(id='token-map', storage_type='session'),

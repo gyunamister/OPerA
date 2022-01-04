@@ -141,7 +141,7 @@ jobs_tab_content = card(
     ])
 
 # Page layout
-page_layout = container("Digital Twin of an Organization",
+page_layout = container("Digital Twin of an Organization for Impact Analysis",
                         [
                             dbc.Tabs([
                                 tab(upload_tab_content, upload_tab_title,

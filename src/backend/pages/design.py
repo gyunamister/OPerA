@@ -7,15 +7,14 @@ from dtween.digitaltwin.ocel.objects.ocel.converter import factory as ocel_conve
 from dtween.parsedata.objects.ocdata import ObjectCentricData
 from dtween.available.available import AvailableTasks
 from backend.tasks.tasks import get_remote_data, build_digitaltwin, store_redis_backend
-from backend.util import add_job, run_task, forget_all_tasks, get_job_id, check_existing_job, read_global_signal_value, read_active_attribute_form, transform_to_guards, write_global_signal_value, no_update, parse_contents, transform_to_valves, transform_to_writes, transform_to_activity_variants
+from backend.util import run_task, read_global_signal_value, no_update, parse_contents, transform_to_valves, transform_to_writes, transform_to_activity_variants
 
-from dtween.digitaltwin.digitaltwin.util import guards_to_df, guard_df_to_dict
 from dtween.digitaltwin.digitaltwin.visualization import visualizer as dt_vis_factory
 import hashlib
 import base64
 
 
-from backend.components.misc import container, single_row, button, show_title_maker, show_button_id, global_signal_id_maker, temp_jobs_store_id_maker, global_form_load_signal_id_maker
+from backend.components.misc import container, button, show_title_maker, show_button_id, temp_jobs_store_id_maker, global_form_load_signal_id_maker
 import dash_interactive_graphviz
 from dash.dependencies import Input, Output, State, MATCH
 import dash_html_components as html
@@ -25,20 +24,18 @@ from backend.app import app
 import pandas as pd
 import dash_table
 import dash
-import dash_daq as daq
-from collections import OrderedDict
 from backend.param.constants import DESIGN_TITLE, DESIGN_URL, PARSE_TITLE, JSON, GLOBAL_FORM_SIGNAL, VALVE_MIN, VALVE_MAX, VALVE_INIT, VALVE_NAME, VALVE_VALUE, WRITE_NAME, WRITE_OBJ_TYPE, WRITE_ATTR_NAME, TRANSITION, GUARD, WRITE_INIT, ACTIVITY_VARIANT_NAME, ACTIVITY_VARIANT_DESC, ACTIVITY_VARIANT_TR_NAME, ACTIVITY_VARIANT_DEFAULT
 
 
 discover_title = "Discover OCPN"
 upload_guard_title = "Upload Guards"
 upload_valve_title = "Upload Valves"
-upload_write_title = "Upload Writes"
+# upload_write_title = "Upload Writes"
 upload_activity_variant_title = "Upload Activity Variants"
 
 apply_guard_title = "Apply Guards"
 apply_valve_title = "Apply Valves"
-apply_write_title = "Apply Writes"
+# apply_write_title = "Apply Writes"
 apply_activity_variant_title = "Apply Activity Variants"
 apply_configuration_title = "Set default configuration"
 connect_db_title = "Connect to Information System"
@@ -80,8 +77,8 @@ buttons = dbc.Row(
                 children=button(upload_valve_title, show_title_maker, show_button_id)), width='auto'),
         dbc.Col(dcc.Upload(id="upload-guard",
                 children=button(upload_guard_title, show_title_maker, show_button_id)), width='auto'),
-        dbc.Col(dcc.Upload(id="upload-write",
-                children=button(upload_write_title, show_title_maker, show_button_id)), width='auto'),
+        # dbc.Col(dcc.Upload(id="upload-write",
+        #         children=button(upload_write_title, show_title_maker, show_button_id)), width='auto'),
         dbc.Col(dcc.Upload(id="upload-activity-variant",
                 children=button(upload_activity_variant_title, show_title_maker, show_button_id)), width='auto'),
         dbc.Col(dcc.Upload(id="upload-system-config",
@@ -136,28 +133,28 @@ valves_form = dbc.FormGroup(
     ]
 )
 
-writes_form = dbc.FormGroup(
-    [
-        dbc.Label("Writes"),
-        dash_table.DataTable(
-            id='write-table',
-            columns=[
-                {'id': WRITE_NAME, 'name': WRITE_NAME},
-                {'id': WRITE_OBJ_TYPE, 'name': WRITE_OBJ_TYPE},
-                {'id': WRITE_ATTR_NAME, 'name': WRITE_ATTR_NAME},
-                {'id': WRITE_INIT, 'name': WRITE_INIT},
-            ],
-            editable=True,
-            style_table={'overflowX': 'auto'},
-        ),
-        button(apply_write_title,
-               show_title_maker, show_button_id),
-        dbc.FormText(
-            "Click here if you want to apply the current valves to the digital twin interface model",
-            color="secondary",
-        ),
-    ]
-)
+# writes_form = dbc.FormGroup(
+#     [
+#         dbc.Label("Writes"),
+#         dash_table.DataTable(
+#             id='write-table',
+#             columns=[
+#                 {'id': WRITE_NAME, 'name': WRITE_NAME},
+#                 {'id': WRITE_OBJ_TYPE, 'name': WRITE_OBJ_TYPE},
+#                 {'id': WRITE_ATTR_NAME, 'name': WRITE_ATTR_NAME},
+#                 {'id': WRITE_INIT, 'name': WRITE_INIT},
+#             ],
+#             editable=True,
+#             style_table={'overflowX': 'auto'},
+#         ),
+#         button(apply_write_title,
+#                show_title_maker, show_button_id),
+#         dbc.FormText(
+#             "Click here if you want to apply the current valves to the digital twin interface model",
+#             color="secondary",
+#         ),
+#     ]
+# )
 
 activity_variants_form = dbc.FormGroup(
     [
@@ -197,7 +194,7 @@ design_content = dbc.Row(
             [
                 valves_form,
                 guards_form,
-                writes_form,
+                # writes_form,
                 activity_variants_form
             ],
             width=6
@@ -244,18 +241,18 @@ def show_selected(value):
     Input(show_button_id(discover_title), 'n_clicks'),
     Input(show_button_id(apply_guard_title), 'n_clicks'),
     Input(show_button_id(apply_valve_title), 'n_clicks'),
-    Input(show_button_id(apply_write_title), 'n_clicks'),
+    # Input(show_button_id(apply_write_title), 'n_clicks'),
     Input(show_button_id(apply_activity_variant_title), 'n_clicks'),
     State('guard-table', 'data'),
     State('valve-table', 'data'),
-    State('write-table', 'data'),
+    # State('write-table', 'data'),
     State('activity-variant-table', 'data'),
     State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
     State(temp_jobs_store_id_maker(PARSE_TITLE), 'data'),
     State(temp_jobs_store_id_maker(DESIGN_TITLE), 'data'),
     prevent_initial_call=True
 )
-def run_build_digitaltwin(n_discover, n_guard, n_valve, n_write, n_variant, guard_data, valve_data, write_data, activity_variant_data, value, data_jobs, design_jobs):
+def run_build_digitaltwin(n_discover, n_guard, n_valve, n_variant, guard_data, valve_data, activity_variant_data, value, data_jobs, design_jobs):
     ctx = dash.callback_context
     if not ctx.triggered:
         button_id = 'No clicks yet'
@@ -305,16 +302,16 @@ def run_build_digitaltwin(n_discover, n_guard, n_valve, n_write, n_variant, guar
             dt_dot = str(gviz)
             return design_jobs, dt_dot
 
-        elif button_id == show_button_id(apply_write_title):
-            log_hash, date = read_global_signal_value(value)
-            user = request.authorization['username']
-            writes = transform_to_writes(write_data)
-            dt = get_remote_data(user, log_hash, design_jobs,
-                                 AvailableTasks.DESIGN.value)
-            dt.writes = writes
-            task_id = run_task(
-                design_jobs, log_hash, AvailableTasks.DESIGN.value, store_redis_backend, data=dt)
-            return design_jobs, dash.no_update
+        # elif button_id == show_button_id(apply_write_title):
+        #     log_hash, date = read_global_signal_value(value)
+        #     user = request.authorization['username']
+        #     writes = transform_to_writes(write_data)
+        #     dt = get_remote_data(user, log_hash, design_jobs,
+        #                          AvailableTasks.DESIGN.value)
+        #     dt.writes = writes
+        #     task_id = run_task(
+        #         design_jobs, log_hash, AvailableTasks.DESIGN.value, store_redis_backend, data=dt)
+        #     return design_jobs, dash.no_update
 
         elif button_id == show_button_id(apply_activity_variant_title):
             log_hash, date = read_global_signal_value(value)
@@ -347,21 +344,21 @@ def update_valve_table(valves):
         dash.no_update
 
 
-@ app.callback(
-    Output('write-table', 'data'),
-    Input('write-store', 'data'),
-)
-def update_write_table(writes):
-    if writes is not None:
-        write_table = [{
-            WRITE_NAME: w,
-            WRITE_OBJ_TYPE: writes[w][WRITE_OBJ_TYPE],
-            WRITE_ATTR_NAME: writes[w][WRITE_ATTR_NAME],
-            WRITE_INIT: writes[w][WRITE_INIT]
-        } for w in writes]
-        return write_table
-    else:
-        dash.no_update
+# @ app.callback(
+#     Output('write-table', 'data'),
+#     Input('write-store', 'data'),
+# )
+# def update_write_table(writes):
+#     if writes is not None:
+#         write_table = [{
+#             WRITE_NAME: w,
+#             WRITE_OBJ_TYPE: writes[w][WRITE_OBJ_TYPE],
+#             WRITE_ATTR_NAME: writes[w][WRITE_ATTR_NAME],
+#             WRITE_INIT: writes[w][WRITE_INIT]
+#         } for w in writes]
+#         return write_table
+#     else:
+#         dash.no_update
 
 
 @ app.callback(
@@ -425,18 +422,18 @@ def upload_valves(content, old_valves):
         return old_valves
 
 
-@ app.callback(
-    Output('write-store', 'data'),
-    Input('upload-write', 'contents'),
-    State('write-store', 'data')
-)
-def upload_writes(content, old_writes):
-    if content is not None:
-        data, success = parse_contents(content, JSON)
-        writes = data['writes']
-        return writes
-    else:
-        return old_writes
+# @ app.callback(
+#     Output('write-store', 'data'),
+#     Input('upload-write', 'contents'),
+#     State('write-store', 'data')
+# )
+# def upload_writes(content, old_writes):
+#     if content is not None:
+#         data, success = parse_contents(content, JSON)
+#         writes = data['writes']
+#         return writes
+#     else:
+#         return old_writes
 
 
 @ app.callback(

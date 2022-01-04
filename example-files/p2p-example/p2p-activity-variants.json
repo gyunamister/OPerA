@@ -2,7 +2,7 @@
     "activity_variants": {
         "Plan Purchase Requisition 1": {
             "description": {
-                "material": [
+                "Material": [
                     "planned_delivery_days"
                 ]
             },
@@ -10,7 +10,7 @@
         },
         "Create Purchase Requisition 1": {
             "description": {
-                "material": [
+                "Material": [
                     "net_price",
                     "effective_price",
                     "diff_issue",
@@ -21,7 +21,7 @@
         },
         "Verify Material 1": {
             "description": {
-                "material": [
+                "Material": [
                     "verified"
                 ]
             },
@@ -29,7 +29,7 @@
         },
         "Verify Material 2": {
             "description": {
-                "material": [
+                "Material": [
                     "verified",
                     "quantity"
                 ]
@@ -38,7 +38,7 @@
         },
         "Receive Goods 1": {
             "description": {
-                "material": [
+                "Material": [
                     "diff_quantity"
                 ]
             },
@@ -46,7 +46,7 @@
         },
         "Receive Invoice 1": {
             "description": {
-                "material": [
+                "Material": [
                     "diff_amount"
                 ]
             },
@@ -54,7 +54,7 @@
         },
         "Issue Invoice Receipt 1": {
             "description": {
-                "material": [
+                "Material": [
                     "diff_assigned_amount"
                 ]
             },

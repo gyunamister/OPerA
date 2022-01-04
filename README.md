@@ -1,238 +1,121 @@
-# Tool manual - DTWEEN
+# Tool manual - IMPACA
 
-*Dtween* is an interactive tool implementing digital twins of organizations using action-oriented process mining. It provides a user-friendly interface, called digital twin interface model (DT-IM), from which users can define constraints and actions and compose action patterns. Based on the action pattern, it automates the execution of actions by analyzing business processes of the organization.
+*IMPACA* is an interactive tool implementing digital twins of organizations supporting impact analysis of changes in Process-Aware Information Systems (PAIS). 
 
-The control view of a DT-IM describes the routing/resource allocation rules of business processes, while specifying possible configurations over the information system supporting the process. The operational view of a DT-IM represents the current state of the process based on the marking of object-centric Petri nets and various diagnostics computed using event data from the system.
+# User Manual
 
-By communicating with a DT-IM, users can define action patterns which define a condition describing an undesired situation and an action to resolve the situation. *Dtween* monitors the action patterns by analyzing streaming event data and produces necessary actions.
+## 1. **Designing Digital Twin Interface Models (DT-IMs)**
 
-![resources/images/Untitled.png](resources/images/Untitled.png)
+We first need to design DT-IMs based on event data and user inputs. 
 
-# Functionalities
+### 1.1. Input and output (see Appendix for details)
 
-## 1. Building digital twins
+- Input: OCEL, guards, valves, activity variants
+- output: Digitalt Twin Interface Model (DT-IM)
 
-### 1.1. Input and output
+### 1.2. How to
 
-- Input: OCEL, guards, valves
-    - OCEL: [standard OCEL format](http://ocel-standard.org/)
-        - Example:
+- Go to **Home**. As shown below, 1) Import OCEL JSON and 2) Preview the data and parse it.
+    
+    ![Untitled](resources/Untitled.png)
+    
+- Go to **Design**. As shown below, 1) discover an OCPN, 2) upload valves, 3) upload guards, and 4) upload activity variants, and 5) connect to the target information system. You can see the discovered OCPN, uploaded valves, uploaded guards, and uploaded activity variants in the same page.
+    
+    ![Untitled](resources/Untitled 1.png)
+    
+- As shown below, 1) apply valves, 2) apply guards, and 3) apply activity variants to enhance the discovered OCPN and produce an DT-IM.
+    
+    ![Untitled](resources/Untitled 2.png)
+    
 
-            ```json
-            {
-                "ocel:global-event": {
-                    "ocel:activity": "__INVALID__"
-                },
-                "ocel:global-object": {
-                    "ocel:type": "__INVALID__"
-                },
-                "ocel:global-log": {
-                    "ocel:attribute-names": [
-                        "type",
-                        "price"
-                    ],
-                    "ocel:object-types": [
-                        "order",
-                        "item",
-                        "route"
-                    ],
-                    "ocel:version": "1.0",
-                    "ocel:ordering": "timestamp"
-                },
-                "ocel:events": {
-                    "1c8428e6-3ad8-44f0-b0a6-76027ddd6fe6": {
-                        "ocel:activity": "place_order",
-                        "ocel:timestamp": "2021-06-01 17:54:02",
-                        "ocel:omap": [
-                            "o0",
-                            "i0a",
-                            "i0b"
-                        ],
-                        "ocel:vmap": {
-                            "resource": "po_machine"
-                        }
-                    },
-            				...
-            		},
-            		"ocel:objects": {
-                    "o0": {
-                        "ocel:type": "order",
-                        "ocel:ovmap": {
-                            "price": 231
-                        }
-                    },
-            				...
-            		}
-            }
-            ```
+## 2. Synchronizing to the target information system and updating control/operational views of DT-IM.
 
-    - guards: JSON-based format
-        - Example
-
-        ```json
-        {
-            "guards": [
-                {
-                    "transition": "place_order",
-                    "guard": "[order.price >= po-price]"
-                },
-                {
-                    "transition": "send_notification",
-                    "guard": "[order.price >= sn-price]"
-                },
-                {
-                    "transition": "skip_send_notification",
-                    "guard": "[order.price < sn-price]"
-                },
-                {
-                    "transition": "check_availability",
-                    "guard": "[item.quantity >= caw-qty]"
-                },
-                {
-                    "transition": "check_availability_with_approval",
-                    "guard": "[item.quantity < caw-qty]"
-                }
-            ]
-        }
-        ```
-
-    - valves: JSON-based format
-        - Example
-
-        ```json
-        {
-            "valves": {
-                "po-price": {
-                    "r_min": 0,
-                    "r_max": 100,
-                    "default": 5
-                },
-                "sn-price": {
-                    "r_min": 100,
-                    "r_max": 1000,
-                    "default": 200
-                },
-                "caw-qty": {
-                    "r_min": 0,
-                    "r_max": 100,
-                    "default": 10
-                }
-            }
-        }
-        ```
-
-- Output:
-    - digital twin: Python object
-
-### 1.2. **Importing OCELs and parsing it**
-
-![resources/images/Untitled%201.png](resources/images/Untitled%201.png)
-
-1. Import OCEL JSON or CSV files
-2. Select attributes
-3. Preview the data and parse it
-
-### 1.3. **Discovering an OCPN, annotating guards and valves**
-
-![resources/images/Untitled%202.png](resources/images/Untitled%202.png)
-
-1. Discovering an OCPN
-2. Uploading JSON-based guards
-3. Uploading JSON-based valves
-4. Applying guards to the discovered OCPN
-
-## 2. Updating states of digital twins
+Next, we enhance the DT-IM discovered in the previous step to the target information system by synchronizing current configurations (hence updating control views) and importing streaming event data (hence updating operational views).
 
 ### 2.1. Input and Output
 
 - Input:
-    - system information: JSON-based format
-        - Example
-
-            ```json
-            {
-                "dir-event-stream": "<path-to-event-stream>",
-                "dir-system-config": "<path-to-system-configuration>"
-            }
-            ```
-
-            The event stream must be in OCEL: [standard OCEL format](http://ocel-standard.org/). The system configuration is JSON-based format.
-
-    - digital twin: Python object
+    - user inputs
+    - DT-IM
 - Output
-    - A state of the digital twin: Python object
+    - DT-IM enhanced with up-to-date control/operational views
 
-### 2.2. Online updates
+### 2.2. How to
 
-![resources/images/Untitled%203.png](resources/images/Untitled%203.png)
+- Go to **Dashboard & Impact Analysis** and click Sync To Information System to synchronize the DT-IM with the target information system. The synchronization is based on the connection to the target system done in the previous step.
+- Go to Control-View, and you can see the current configuration, i.e., 1) current valve settings and 2) activity variant settings with 3) the DT-IM.
+    
+    ![Untitled](resources/Untitled 3.png)
+    
+- Go to Operational-View, and you can see the current operational states, i.e., 1) marking, 2) object value mapping, and 3) diagnostics as below. By clicking a place, you can see the marking of the place. The diagnostics are provided by selecting the analysis period and types of diagnostics.
+    
+    ![Untitled](resources/Untitled 4.png)
+    
+    ![Untitled](resources/Untitled 5.png)
+    
 
-1. Importing system information
-2. Setting the size of the sliding window
-3. Setting the step size of the window
-4. Controlling updates (start, stop, reset)
+## 3. Defining Actions
 
-### 2.3. Offline analysis
-
-![resources/images/Untitled%204.png](resources/images/Untitled%204.png)
-
-1. Selecting time window for analysis
-2. Showing diagnostics
-
-## 3. Defining action patterns
+To analyze the impact of changes incurred by actions, we design actions. An action consists of 1) changes in valves and 2) changes activity variants.
 
 ### 3.1. Input and Output
 
 - Input
-    - User inputs to define conditions (e.g., diagnostics, comparator, threshold, and name)
-    - User inputs to define actions (e.g., valve, value, and name)
-    - User inputs to define action patterns (e.g., mapping between conditions and actions, name)
+    - User inputs
+    - DT-IM
 - Output
-    - Action patterns: Python object
+    - Action defined over DT-IM (Python Object)
 
-### 3.2. Defining conditions
+### 3.2. How to
 
-![resources/images/Untitled%205.png](resources/images/Untitled%205.png)
+- Go to Action Definition. As shown below, 1) specify action name, 2) define valve changes by adjusting knots, and 3) define activity variant changes by choosing activity variants.
+    
+    ![Untitled](resources/Untitled 6.png)
+    
 
-1. Selecting types of diagnostics (e.g., waiting time) to be used to formulate a condition
-2. Selecting comparator (e.g., >,=,<) to be used to formulate a condition
-3. Selecting threshold value (e.g., 10, 0.8) to be used to formulate a condition
-4. Naming the condition 
-5. Defining the condition with the current inputs
+## 4. Designing Action Instances
 
-### 3.3. Defining actions
-
-![resources/images/Untitled%206.png](resources/images/Untitled%206.png)
-
-1. Selecting a valve to be used to define an action
-2. Selecting values of the selected valve to define an action
-3. Naming the action
-4. Defining the action with the current inputs
-
-### 3.4. Defining action patterns
-
-![resources/images/Untitled%207.png](resources/images/Untitled%207.png)
-
-1. Selecting conditions to be used to formulate an action pattern
-2. Selecting actions to be used to formulate an action pattern
-3. Naming the action pattern
-4. Adding patterns to the system, as shown below as a graph
-
-## 4. Action engine
+Based on the action definitions, we design action instances by specifying which actions will be applied to the target information system and how long they will be effective.
 
 ### 4.1. Input and Output
 
 - Input
-    - Action patterns: Python object
-    - States of the digital twin: Python object
-    - Configurations of the digital twin: Python object
-- Ouptut
-    - Actions: Python object
+    - User inputs
+    - DT-IM
+- Output
+    - Action Instance defined over DT-IM (Python Object)
 
-### 4.2. Evaluating action patterns and generating actions
+### 4.2. How to
 
-![resources/images/Untitled%208.png](resources/images/Untitled%208.png)
+- Go to **Dashboard & Impact Analysis**. As shown below, 1) select an action, 2) specify the start and end time of executing the action, and 3) add an action instance. The timeline shows the overview of defined action instances.
+    
+    ![Untitled](resources/Untitled 7.png)
+    
 
-1. While updating the states of the digital twin, the action patterns are also evaluated generating actions accordingly.
+## 5. Impact Analysis
+
+At the start time of the action instance, we analyze pre-action impacts with multiple impact measures. At the end time of the action instance, we analyze post-action impacts with multiple impact measures. 
+
+The impact analysis aims to analyze the impact of the action instance by continuously evaluating the streaming event data from the target information system. To ease the introduction of its functionality, we use the simulation of the target information system that we can flexibly control, i.e., start it and forward it whenever we want to evaluate an action instance.
+
+### 5.1. Input and Output
+
+- Input
+    - Streaming event data
+    - DT-IM
+- Output
+    - pre/post-action impact scores
+
+### 5.2. How to
+
+- As shown below, specify 1) the simulation step size (i.e., how much time of the reality each step will represent) and 2) the number of simulation steps (i.e., how many simulation steps we will use) Afterward, you can control the simulation by 3) starting the simulation of the target information system and 4) moving forward each step.
+    
+    ![Untitled](resources/Untitled 8.png)
+    
+- As shown below, 1) the vertical line in the timeline represents the progress of the simulation.  Once an action instance has been effective, we can 2) click the action instance in the timeline to see the pre-action impact scores as below. Moreover, by clicking the green box, we can analyze the impacted entities. Once an action instance is finished, we can click the action instance in the timeline to see the post-action impact scores as below.
+    
+    ![Untitled](resources/Untitled 9.png)
+    
 
 ## Deployment
 
@@ -243,16 +126,15 @@ Please make sure to install the binaries of [Graphviz](https://graphviz.org/) an
 In the first shell:
 
 ```bash
-pip install dtween
-cd src/backend/db
+git clone https://github.com/gyunamister/impaca.git
+cd impaca/src/backend/db
 docker-compose up
 ```
 
 In the second shell:
 
 ```bash
-export DTWEEN_PATH=<path_to_your_project_root> # the directory where src/ is located
-cd src/backend
+cd impaca/src/backend
 chmod +x ./run_celery.sh
 ./run_celery.sh
 ```
@@ -272,51 +154,139 @@ celery -A tasks worker --loglevel=INFO -P eventlet
 In the third shell:
 
 ```bash
-export DTWEEN_PATH=<path_to_your_project_root> # the directory where src/ is located
-cd src/backend
-chmod +x ./run_dtween.sh
-./run_dtween.sh
+
+cd impaca/src/backend
+chmod +x ./run_impaca.sh
+./run_impaca.sh
 ```
 
-The default username is admin, and the default password is test123 for logging into the system available at 127.0.0.1/8050.
+The default username is admin, and the default password is test123 for logging into the system available at 127.0.0.1/8051.
 
 ### Automatic
 
 TBD
 
-## Artificial information system
+## Target information system
 
-To facilitate the test of the tool, we provide an experimental environment with an information system supporting an artificial order handling process.
+To facilitate the test of the tool, we provide an experimental environment with an information system supporting a Purchase-To-Pay(P2P) process.
 
-### Description of the order handling process
+### Description of Purchase-To-Pay Process
 
-Below is the process model describing the order handling process in OCPN formalism:
+Below is the process model describing the P2P process in OCPN formalism:
 
-![resources/images/Untitled%209.png](resources/images/Untitled%209.png)
+![Untitled](resources/Untitled 10.png)
 
-- 14 resources are available in total at any point in time, each of them being responsible for multiple activities in the process.
+- 24 resources are available with different business hours, each of them being responsible for multiple activities in the process.
 - Orders are randomly placed and the resources process the orders and the corresponding items and routes based on First-in-First-out rule.
 
-### Simulating the process
+## Appendix 1: Input and Output
 
-- The simulation is implemented using [Simpy](https://simpy.readthedocs.io/en/latest/index.html), discrete simulation framework based on standard Python.
-- While simulating the process, the information system generates event logs recording the execution of the process in OCEL format.
-- How-to
-    1. Set up simulations (optional)
-
-        Default settings are provided. If you change the setting, edit *src/infosystem/input/settings.py.*
-
-    2. Configure the information system
-
-        Multiple valves are available in the provided information system. For instance, *sn-price* determines the minimum price of the orders that require the notification for payments. Moreover, *caw-price* determines the minimum quantities of the items requiring approvals for checking availability.
-
-        A configuration should be provided as a JSON format file. An example configuration is available at *src/infosystem/input/config.json*.
-
-    3. Run Simulations
-
-    To run simulations, you need to specify a directory to store event streams and the directory of the configuration.
-
-    ```bash
-    cd src/infosystem/simulation
-    python run.py -l "<path_to_store_event_stream>" -c "<path_to_system_configuration>"
+- OCEL: [standard OCEL format](http://ocel-standard.org/)
+    - Example:
+        
+        ```json
+        {
+            "ocel:global-event": {
+                "ocel:activity": "__INVALID__"
+            },
+            "ocel:global-object": {
+                "ocel:type": "__INVALID__"
+            },
+            "ocel:global-log": {
+                "ocel:attribute-names": [
+                    "type",
+                    "price"
+                ],
+                "ocel:object-types": [
+                    "order",
+                    "item",
+                    "route"
+                ],
+                "ocel:version": "1.0",
+                "ocel:ordering": "timestamp"
+            },
+            "ocel:events": {
+                "1c8428e6-3ad8-44f0-b0a6-76027ddd6fe6": {
+                    "ocel:activity": "place_order",
+                    "ocel:timestamp": "2021-06-01 17:54:02",
+                    "ocel:omap": [
+                        "o0",
+                        "i0a",
+                        "i0b"
+                    ],
+                    "ocel:vmap": {
+                        "resource": "po_machine"
+                    }
+                },
+        				...
+        		},
+        		"ocel:objects": {
+                "o0": {
+                    "ocel:type": "order",
+                    "ocel:ovmap": {
+                        "price": 231
+                    }
+                },
+        				...
+        		}
+        }
+        ```
+        
+- guards: JSON-based format
+    - Example
+    
+    ```json
+    {
+        "guards": [
+            {
+                "transition": "Create Purchase Requisition",
+                "guard": "[Material.planned_delivery_days >= {min_planned_delivery_days}]"
+            },
+            {
+                "transition": "Create Purchase Order",
+                "guard": "[Material.net_price - Material.effective_price <= {max_price_diff}, Material.quantity >= {min_order_quantity}]"
+            },
+            ...
+        ]
+    }
     ```
+    
+- valves: JSON-based format
+    - Example
+    
+    ```json
+    {
+        "valves": {
+            "min_planned_delivery_days": {
+                "r_min": 0,
+                "r_max": 100,
+                "default": 5
+            },
+            "max_price_diff": {
+                "r_min": 100,
+                "r_max": 1000,
+                "default": 200
+            },
+            "min_order_quantity": {
+                "r_min": 0,
+                "r_max": 100,
+                "default": 5
+            },
+    				...
+        }
+    }
+    ```
+    
+- Output:
+    - Digital Twin Interface Model: Python object
+- system information: JSON-based format
+    - Example
+        
+        ```json
+        {
+            "dir-event-stream": "<path-to-event-stream>",
+            "dir-system-config": "<path-to-system-configuration>"
+        }
+        ```
+        
+        The event stream must be in OCEL: [standard OCEL format](http://ocel-standard.org/). The system configuration is JSON-based format.

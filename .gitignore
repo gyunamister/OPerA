@@ -66,6 +66,7 @@ venv.bak/
 # Examples
 /example_logs
 /example_code
+/example_files
 
 # analysis
 /src/evaluation

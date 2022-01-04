@@ -161,6 +161,11 @@ class DigitalTwin(object):
             if write.name == write_name:
                 write.tr_name = tr_name
 
+    def update_acvitiy_variant(self, tr_name, variant_name):
+        for variant in self._activity_variants:
+            if variant.name == variant_name:
+                variant.tr_name = tr_name
+
     def get_writes_by_transition(self, tr_name):
         return [write for write in self._writes if write.tr_name == tr_name]
 
@@ -186,13 +191,3 @@ class DigitalTwin(object):
                 tr_preset = pre_tr.preset
                 results["pre_places"].update(tr_preset)
                 self._relate_pre_places(pre_tr, results)
-                # yield self._iterate_pre_places(pre_tr)
-
-    # def relate_pre_places(self, t: ObjectCentricPetriNet.Transition):
-    #     pre_places = set()
-    #     for pl_generator in self._iterate_pre_places(t):
-    #         print(pl_generator)
-    #         for tr in pl_generator:
-    #             print(tr)
-    #             pre_places.update(tr.preset)
-    #     return pre_places

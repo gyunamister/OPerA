@@ -97,12 +97,12 @@ def analyze_func_perf(pre_act_func_diag, post_act_func_diag):
 
 
 def analyze_impacted_conf_entities(dt: DigitalTwin, ai: ActionInstance):
-    effective_valve_actions, effective_write_operation_actions = compute_effective_actions(
-        ai.action, dt.valves, dt.writes)
+    effective_valve_actions, effective_activity_variant_actions = compute_effective_actions(
+        ai.action, dt.valves, dt.activity_variants)
     impacted_object_types = compute_impacted_objects(
-        dt, effective_write_operation_actions)
+        dt, effective_activity_variant_actions)
     impacted_functions = compute_impacted_functions(
-        dt, effective_valve_actions, effective_write_operation_actions)
+        dt, effective_valve_actions, effective_activity_variant_actions)
 
     return impacted_object_types, impacted_functions
     # set([tr.name for tr in impacted_functions])

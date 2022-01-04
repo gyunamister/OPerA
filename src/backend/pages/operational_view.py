@@ -42,7 +42,7 @@ from time import sleep
 from backend.param.settings import redis_pwd
 
 
-load_ocpn_title = "load digital twin".title()
+load_ocpn_title = "Refresh operational view".title()
 update_title = "update".title()
 diagnostics_button_title = "show diagnostics".title()
 
@@ -221,7 +221,7 @@ operational_view_content = dbc.Row(
     style={'height': '100vh'}
 )
 
-page_layout = container('Operational View',
+page_layout = container('Digital Twin Interface Model: Operational View',
                         [
                             single_row(html.Div(buttons)),
                             html.Hr(),
@@ -393,62 +393,3 @@ def update_output(start_date, end_date):
         return 'Select a date to see it displayed here', start_date_string, end_date_string
     else:
         return string_prefix, start_date_string, end_date_string
-
-
-# @app.callback(
-#     Output('operation-table', 'columns'),
-#     Output('operation-table', 'data'),
-#     Output(temp_jobs_store_id_maker(OVIEW_TITLE), 'data'),
-#     Output('token-map', 'data'),
-#     Input(show_button_id(update_title), 'n_clicks'),
-#     State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
-#     State(global_signal_id_maker(PARSE_TITLE), 'children'),
-#     State(temp_jobs_store_id_maker(DESIGN_TITLE), 'data'),
-#     State('log-dir', 'data'),
-# )
-# def run_operation(n_update, value, old_value, control_jobs, log_dir):
-#     ctx = dash.callback_context
-#     if not ctx.triggered:
-#         button_id = 'No clicks yet'
-#     else:
-#         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-#         button_value = ctx.triggered[0]['value']
-#     if button_id == show_button_id(update_title):
-#         # if disabled == False and (old_value is not None or value is not None):
-#         if value is None:
-#             value = old_value
-#         print("streaming event data from {}".format(log_dir))
-#         data = ocel_import_factory.apply(log_dir)
-#         event_df = data[0]
-#         # sublog = mdl_preprocess_factory.filter_by_timestamp(
-#         #     event_df, start_timestamp=start_timestamp, end_timestamp=end_timestamp)
-#         sublog = event_df
-#         if len(sublog) == 0:
-#             print("no events")
-#         user = request.authorization['username']
-#         log_hash, date = read_global_signal_value(value)
-#         if AvailableTasks.OPERATE.value not in control_jobs[JOBS_KEY][log_hash][JOB_TASKS_KEY]:
-#             dt = get_remote_data(user, log_hash, control_jobs,
-#                                  AvailableTasks.DESIGN.value)
-#         else:
-#             dt = get_remote_data(user, log_hash, control_jobs,
-#                                  AvailableTasks.OPERATE.value)
-#         # update marking
-#         print(dt.marking)
-#         dt.marking = oper_factory.apply(dt.ocpn, sublog, dt.marking)
-#         token_map = {}
-#         for pl, oi in dt.marking.tokens:
-#             if pl.name not in token_map.keys():
-#                 token_map[pl.name] = [oi]
-#             else:
-#                 token_map[pl.name].append(oi)
-#         # store digital twin
-#         task_id = run_task(control_jobs, log_hash, AvailableTasks.OPERATE.value,
-#                            store_redis_backend, data=dt)
-#         operation_table_columns = [{"name": i, "id": i}
-#                                    for i in sublog.columns]
-#         operation_table_data = sublog.to_dict('records')
-#         return operation_table_columns, \
-#             operation_table_data, \
-#             control_jobs, json.dumps(token_map)
-#     return no_update(4)

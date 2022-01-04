@@ -17,11 +17,12 @@ from backend.app import app
 import dash_table
 import dash
 import dash_daq as daq
-from backend.param.constants import DASHBOARD_URL, GLOBAL_FORM_SIGNAL, CVIEW_TITLE, JSON, DASHBOARD_TITLE
+from backend.param.constants import DASHBOARD_URL, GLOBAL_FORM_SIGNAL, CVIEW_TITLE, JSON, DASHBOARD_TITLE, DESIGN_TITLE, ACTIVITY_VARIANT_NAME, ACTIVITY_VARIANT_DESC, ACTIVITY_VARIANT_TR_NAME
 
 from dtween.digitaltwin.digitaltwin.util import read_config
 from dtween.util.util import REPLAY_DIAGNOSTICS_MAP
 from dtween.digitaltwin.ocel.objects.ocel.importer import factory as ocel_import_factory
+from dtween.digitaltwin.digitaltwin.action_engine.obj import ValveAction, WriteOperationAction, StaticAction, ActivityVariantAction
 from backend import time_utils
 
 from backend.util import read_global_signal_value, no_update, parse_contents, run_task
@@ -38,7 +39,8 @@ from time import sleep
 from backend.param.settings import redis_pwd
 
 
-set_default_config_title = "Refresh configuration".title()
+set_default_config_title = "Sync to information system".title()
+update_action_title = "Update actions".title()
 start_title = "start".title()
 move_forward_title = "forward".title()
 add_action_instance_title = "Add action instance"
@@ -120,54 +122,6 @@ num_step_slider = dbc.FormGroup(
     ]
 )
 
-# table_name = dbc.Row(
-#     [
-#         dbc.Col(html.H4("Condition Repository")),
-#         dbc.Col(html.H4("Action Repository")),
-#     ]
-# )
-
-# action_pattern_content = dbc.Row(
-#     [
-#         dcc.ConfirmDialog(
-#             id='confirm-add-action-pattern',
-#             message='Action pattern is added.',
-#         ),
-#         dbc.Col(
-#             dash_table.DataTable(
-#                 id='condition-table',
-#                 columns=[
-#                     # {'id': 'index', 'name': 'index'},
-#                     {'id': 'Name', 'name': 'Name'},
-#                     {'id': 'Expression', 'name': 'Expression'}
-#                 ],
-#                 editable=True)
-#         ),
-#         dbc.Col(
-#             dash_table.DataTable(
-#                 id='action-table',
-#                 columns=[
-#                     # {'id': 'index', 'name': 'index'},
-#                     {'id': 'Action Name', 'name': 'Action Name'},
-#                     {'id': 'Description', 'name': 'Description'},
-#                     # {'id': 'Value', 'name': 'Value'},
-#                 ],
-#                 editable=True
-#             )
-#         )
-#     ]
-# )
-
-# condition_input = dbc.FormGroup(
-#     [
-#         dbc.Label("Select condition", html_for="example-password"),
-#         dcc.Dropdown(id='condition-dropdown', multi=True),
-#         dbc.FormText(
-#             "You can select multiple conditions.", color="secondary"
-#         ),
-#     ]
-# )
-
 action_input = dbc.FormGroup(
     [
         dbc.Label("Select action", html_for="example-password"),
@@ -200,8 +154,12 @@ manual_action_instance = dbc.Row(
     className="h-25",
 )
 
-control_buttons = [
+dashboard_buttons = [
     button(set_default_config_title, show_title_maker, show_button_id),
+    button(update_action_title, show_title_maker, show_button_id),
+]
+
+control_buttons = [
     button(start_title, show_title_maker, show_button_id),
     button(move_forward_title, show_title_maker, show_button_id),
 ]
@@ -373,20 +331,21 @@ operation_content = dbc.Row(
     ), justify='center'
 )
 
-page_layout = container('Impact Analysis',
+page_layout = container('Dashboard & Impact Analysis',
                         [
+                            html.H2("Dashboard Control"),
+                            single_row(html.Div(dashboard_buttons)),
+                            html.Hr(),
                             html.H2("Simulation Control"),
                             dbc.Row([
                                 dbc.Col(step_size_slider, width=6),
                                 dbc.Col(num_step_slider, width=6),
                             ]),
                             single_row(html.Div(control_buttons)),
-                            html.Div(id='current-timestamp'),
+                            html.Div(id='current-timestamp',
+                                     style={'display': 'none'}),
                             html.Hr(),
                             html.H2("Add Action Instance"),
-                            # html.H2("Repository"),
-                            # table_name,
-                            # action_pattern_content,
                             manual_action_instance,
                             html.Hr(),
                             html.H2("Timeline"),
@@ -400,47 +359,6 @@ page_layout = container('Impact Analysis',
                             operation_content
                         ]
                         )
-
-
-@app.callback(
-    Output("action-table", "data"),
-    Input('url', 'pathname'),
-    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
-    State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
-)
-def load_tables(pathname, value, cview_jobs):
-    if pathname == DASHBOARD_URL:
-        action_table_data = []
-        user = request.authorization['username']
-        log_hash, date = read_global_signal_value(value)
-        dt = get_remote_data(user, log_hash, cview_jobs,
-                             AvailableTasks.STORE_CONFIG.value)
-        for action in dt.action_engine.action_repo:
-            action_table_data.append(
-                {"Action Name": action.name, "Description": "Test"})
-        return action_table_data
-    return dash.no_update
-
-
-@app.callback(
-    # Output('condition-dropdown', 'options'),
-    Output('action-dropdown', 'options'),
-    Input('url', 'pathname'),
-    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
-    State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
-)
-def update_dropdowns(pathname, value, cview_jobs):
-    if pathname == DASHBOARD_URL:
-        user = request.authorization['username']
-        log_hash, date = read_global_signal_value(value)
-        dt = get_remote_data(user, log_hash, cview_jobs,
-                             AvailableTasks.STORE_CONFIG.value)
-        action_options = [{'label': action.name,
-                           'value': action.name} for action in dt.action_engine.action_repo]
-        constraint_options = [{'label': constraint.name,
-                               'value': constraint.name} for constraint in dt.action_engine.constraint_repo]
-        return action_options
-    return dash.no_update
 
 
 def awrite(writer, data):
@@ -524,11 +442,14 @@ def update_step_size(value):
     Output('operation-table', 'columns'),
     Output('operation-table', 'data'),
     Output('token-map', 'data'),
+    Output('action-dropdown', 'options'),
     Input(show_button_id(set_default_config_title), 'n_clicks'),
     Input(show_button_id(add_action_instance_title), 'n_clicks'),
+    Input(show_button_id(update_action_title), 'n_clicks'),
     Input('next-simulation-count', 'data'),
+    State('action-definition', 'data'),
     State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
-    State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
+    State(temp_jobs_store_id_maker(DESIGN_TITLE), 'data'),
     State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
     State('action-dropdown', 'value'),
     State('action-time-slider', 'value'),
@@ -536,9 +457,10 @@ def update_step_size(value):
     State('log-dir', 'data'),
     State('start-time', 'data'),
     State('step-size', 'data'),
-    State('num-step', 'data')
+    State('num-step', 'data'),
+    State('config-dir', 'data')
 )
-def callback_set_default_config(n_default, n_add, next_sim_count, value, cview_jobs, dashboard_jobs, selected_action_name, action_time_value, timeline_data, log_dir, start_time, step_size, num_step):
+def callback_set_default_config(n_default, n_add, n_action, next_sim_count, action_definition, value, design_jobs, dashboard_jobs, selected_action_name, action_time_value, timeline_data, log_dir, start_time, step_size, num_step, config_dir):
     ctx = dash.callback_context
     if not ctx.triggered:
         button_id = 'No clicks yet'
@@ -549,16 +471,23 @@ def callback_set_default_config(n_default, n_add, next_sim_count, value, cview_j
         if button_id == show_button_id(set_default_config_title):
             log_hash, date = read_global_signal_value(value)
             user = request.authorization['username']
-            dt = get_remote_data(user, log_hash, cview_jobs,
-                                 AvailableTasks.STORE_CONFIG.value)
-            dt.action_engine.clear_action_instances()
+            dt = get_remote_data(user, log_hash, design_jobs,
+                                 AvailableTasks.DESIGN.value)
+            conf_valves, conf_activity_variants = read_config(config_dir)
+            for valve in conf_valves:
+                dt.update_valve(valve, conf_valves[valve])
+
+            for tr_name in conf_activity_variants.keys():
+                dt.update_acvitiy_variant(
+                    tr_name, conf_activity_variants[tr_name][ACTIVITY_VARIANT_NAME])
+            # dt.action_engine.clear_action_instances()
             task_id = run_task(
-                cview_jobs, log_hash, AvailableTasks.SIMULATE.value, store_redis_backend, data=dt)
+                design_jobs, log_hash, AvailableTasks.SIMULATE.value, store_redis_backend, data=dt)
             ft = datetime.strptime(
                 start_time, time_utils.DATETIME_FORMAT) + timedelta(days=num_step)
             timeline_data = [
                 dict(Task="Simulation", Start=start_time, Finish=ft.strftime(time_utils.DATETIME_FORMAT), InstanceName='Simulation')]
-            return cview_jobs, timeline_data, dash.no_update, dash.no_update, dash.no_update
+            return design_jobs, timeline_data, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         elif button_id == show_button_id(add_action_instance_title):
             log_hash, date = read_global_signal_value(value)
             user = request.authorization['username']
@@ -574,7 +503,7 @@ def callback_set_default_config(n_default, n_add, next_sim_count, value, cview_j
                 timedelta(hours=ai.end*step_size)
             timeline_data.append(dict(
                 Task=ai.action.name, Start=st.strftime(time_utils.DATETIME_FORMAT), Finish=ft.strftime(time_utils.DATETIME_FORMAT), InstanceName=ai.name))
-            return dashboard_jobs, timeline_data, dash.no_update, dash.no_update, dash.no_update
+            return dashboard_jobs, timeline_data, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         elif button_id == 'next-simulation-count' and next_sim_count > 0:
             log_hash, date = read_global_signal_value(value)
             user = request.authorization['username']
@@ -605,11 +534,40 @@ def callback_set_default_config(n_default, n_add, next_sim_count, value, cview_j
             task_id = run_task(
                 dashboard_jobs, log_hash, AvailableTasks.SIMULATE.value, store_redis_backend, data=dt)
 
-            return dashboard_jobs, dash.no_update, operation_table_columns, operation_table_data, json.dumps(token_map)
+            return dashboard_jobs, dash.no_update, operation_table_columns, operation_table_data, json.dumps(token_map), dash.no_update
+        elif button_id == show_button_id(update_action_title):
+            log_hash, date = read_global_signal_value(value)
+            user = request.authorization['username']
+            dt = get_remote_data(user, log_hash, dashboard_jobs,
+                                 AvailableTasks.SIMULATE.value)
+            for action_name in action_definition:
+                if action_name not in [a.name for a in dt.action_engine.action_repo]:
+                    edit_valves = action_definition[action_name]["valves"]
+                    edit_activity_variants = action_definition[action_name]["activity_variants"]
+                    valve_actions = []
+                    for valve in edit_valves:
+                        valve_action = ValveAction(valve, edit_valves[valve])
+                        valve_actions.append(valve_action)
+
+                    activity_variant_actions = []
+                    for edit_variant in edit_activity_variants:
+                        activity_variant_action = ActivityVariantAction(
+                            edit_variant[ACTIVITY_VARIANT_TR_NAME], edit_variant[ACTIVITY_VARIANT_NAME])
+                        activity_variant_actions.append(
+                            activity_variant_action)
+
+                    action = StaticAction(name=action_name, valve_actions=valve_actions,
+                                          activity_variant_actions=activity_variant_actions)
+                    dt.action_engine.add_action(action)
+            task_id = run_task(
+                dashboard_jobs, log_hash, AvailableTasks.SIMULATE.value, store_redis_backend, data=dt)
+            action_options = [{'label': action.name,
+                               'value': action.name} for action in dt.action_engine.action_repo]
+            return dashboard_jobs, *no_update(4), action_options
         else:
-            return no_update(5)
+            return no_update(6)
     else:
-        return no_update(5)
+        return no_update(6)
 
 
 @app.callback(
@@ -863,8 +821,6 @@ def update_func_post_impact_analysis(func_diag, func, func_perf_metric, click_da
             ai = dt.action_engine.get_action_instance(
                 action_instance_name)
             if ai.post_func_impact is not None:
-                print(ai.post_func_impact)
-                print(ai.post_func_impact[func_perf_metric][func_diag])
                 return ai.post_func_impact[func_perf_metric][func_diag]
             else:
                 dash.no_update

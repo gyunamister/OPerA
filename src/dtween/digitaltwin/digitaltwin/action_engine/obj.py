@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, List, Set, Tuple, Dict
-from dtween.digitaltwin.digitaltwin.control.obj import Valve, NumericalValve, WriteOperation
+from dtween.digitaltwin.digitaltwin.control.obj import Valve, NumericalValve, ActivityVariant
 
 from dtween.digitaltwin.impact_analysis.factory import analyze_pre_impact, analyze_post_impact, analyze_impacted_run_entities, analyze_impacted_conf_entities
 from dtween.available.available import AvailableObjPerformanceMetric, AvailableFuncPerformanceMetric
@@ -51,6 +51,21 @@ class WriteOperationAction(object):
 
 
 @dataclass
+class ActivityVariantAction(object):
+    tr_name: str
+    variant_name: str
+
+    def __repr__(self):
+        return f'Now {self.tr_name} uses {self.variant_name})'
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, action):
+        return self.variant_name == action.variant_name and self.tr_name == action.tr_name
+
+
+@dataclass
 class Action(object):
     name: str
 
@@ -65,7 +80,8 @@ class Action(object):
 class StaticAction(Action):
     name: str
     valve_actions: List[ValveAction] = None
-    write_operation_actions: List[WriteOperationAction] = None
+    # write_operation_actions: List[WriteOperationAction] = None
+    activity_variant_actions: List[ActivityVariantAction] = None
 
     def __hash__(self):
         return hash(str(self))
@@ -231,17 +247,14 @@ class ActionEngine(object):
     def add_action(self, action):
         self._action_repo.add(action)
 
-    def apply_default_configuration(self, valves: Set[Valve], writes: Set[WriteOperation]):
+    def apply_default_configuration(self, valves: Set[Valve], activity_variants: Set[ActivityVariant]):
         for v in valves:
             v.value = v.default
-        for w in writes:
-            w.tr_name = w.default
+        for av in activity_variants:
+            av.tr_name = av.default
         print(
-            f'Set default configuration. \n Valve: \n {valves} \n Write Operation: \n {writes}')
-        return valves, writes
-
-    # def apply_action_instance(self, t: int):
-    #     for
+            f'Set default configuration. \n Valve: \n {valves} \n Activity Variant: \n {activity_variants}')
+        return valves, activity_variants
 
     def get_action_instance(self, name):
         for action_instance in self._action_instances:
@@ -249,23 +262,28 @@ class ActionEngine(object):
                 # if action_name == action_instance.action.name and time >= action_instance.start and time <= action_instance.end:
                 return action_instance
 
-    def apply_action(self, action, valves: Set[Valve], writes: Set[WriteOperation]):
+    def apply_action(self, action, valves: Set[Valve], activity_variants: Set[ActivityVariant]):
         for v_action in action.valve_actions:
             for v in valves:
                 if v_action.name == v.name:
                     v.value = v_action.value
 
-        for w_action in action.write_operation_actions:
-            for w in writes:
-                if w_action.name == w.name:
-                    w.tr_name = w_action.tr_name
+        for av_action in action.activity_variant_actions:
+            # cancel previous activity variant mapping
+            for av in activity_variants:
+                if av_action.tr_name == av.tr_name:
+                    av.tr_name = None
+            # assign new activity variant mapping
+            for av in activity_variants:
+                if av_action.variant_name == av.name:
+                    av.tr_name = av_action.tr_name
         print(
-            f'Apply action. \n Valve: \n {valves} \n Write Operation: \n {writes}')
+            f'Apply action. \n Valve: \n {valves} \n Activity Variants: \n {activity_variants}')
 
     def apply_action_instance(self, dt: DigitalTwin, time: int, ocel):
         print(f'Apply action instances at {time}')
-        dt.valves, dt.writes = self.apply_default_configuration(
-            dt.valves, dt.writes)
+        dt.valves, dt.activity_variants = self.apply_default_configuration(
+            dt.valves, dt.activity_variants)
 
         action_instances_at_t = [
             action_instance for action_instance in self._action_instances if action_instance.start <= time and action_instance.end >= time]
@@ -289,7 +307,7 @@ class ActionEngine(object):
                 ai.post_action_func_diagnostics = diagnostics
                 ai.post_obj_impact, ai.post_func_impact = analyze_post_impact(
                     ai)
-            self.apply_action(ai.action, dt.valves, dt.writes)
+            self.apply_action(ai.action, dt.valves, dt.activity_variants)
 
     def clear_action_instances(self):
         self._action_instances = set()

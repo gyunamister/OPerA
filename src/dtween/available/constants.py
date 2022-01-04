@@ -52,3 +52,6 @@ COMP_OPERATORS = ['>', '=', '<', '>=', '<=', '!=']
 
 OBJECT_FILTER = 'object-filter'
 EVENT_FILTER = 'event-filter'
+
+VALVES = "valves"
+ACTIVITY_VARIANTS = 'activity_variants'

@@ -6,8 +6,7 @@ from backend.util import read_global_signal_value, no_update, run_task
 from backend.tasks.tasks import get_remote_data, store_redis_backend
 
 from dtween.available.available import AvailableTasks
-from dtween.digitaltwin.digitaltwin.action_engine.obj import ValveAction, WriteOperationAction, StaticAction
-from dtween.digitaltwin.digitaltwin.objects.obj import WriteOperation
+from dtween.digitaltwin.digitaltwin.action_engine.obj import ValveAction, WriteOperationAction, StaticAction, ActivityVariantAction
 from dtween.digitaltwin.digitaltwin.util import read_config
 from dtween.digitaltwin.digitaltwin.visualization import visualizer as dt_vis_factory
 
@@ -19,10 +18,9 @@ import dash_html_components as html
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 import dash_table
-from backend.param.constants import GLOBAL_FORM_SIGNAL, DESIGN_TITLE, PARSE_TITLE, CVIEW_URL, WRITE_NAME, WRITE_OBJ_TYPE, WRITE_ATTR_NAME, WRITE_INIT, WRITE_TR_NAME, CVIEW_TITLE
+from backend.param.constants import GLOBAL_FORM_SIGNAL, CVIEW_URL, CVIEW_TITLE, ACTIVITY_VARIANT_NAME, ACTIVITY_VARIANT_DESC, ACTIVITY_VARIANT_TR_NAME, DASHBOARD_TITLE
 
 from flask import request
-import copy
 
 
 from backend.app import app
@@ -59,6 +57,7 @@ def get_redis_data(task):
 
 edit_valves_task = 'edit valves'
 edit_write_operations_task = 'edit write operations'
+edit_activity_variants_task = 'edit activity variants'
 
 load_dtim_title_1 = "load digital twin interface model"
 update_control_view_title = "update control view"
@@ -67,72 +66,45 @@ define_action_title = "Define Action"
 
 buttons = dbc.Row(
     [
-        dbc.Col(button(load_dtim_title_1, show_title_maker,
-                show_button_id), width="auto"),
-        dbc.Col(button(update_control_view_title, show_title_maker,
-                show_button_id), width="auto"),
+        # dbc.Col(button(load_dtim_title_1, show_title_maker,
+        #         show_button_id), width="auto"),
+        # dbc.Col(button(update_control_view_title, show_title_maker,
+        #         show_button_id), width="auto"),
         dbc.Col(button(define_action_title, show_title_maker,
                 show_button_id), width="auto"),
     ], justify='start'
 )
 
-valves_form = dbc.FormGroup(
-    [
-        dbc.Label("Valves"),
-        dcc.Dropdown(id='valve-dropdown'),
-        dcc.Slider(id='valve-slider'),
-        html.Div(id='current-valve-value'),
-        dbc.FormText(id='current-valve-value'),
-        dcc.Input(id="action-specification", type="text",
-                  placeholder="Enter Action name"),
-        html.Br(),
-    ]
-)
 
-write_operations_form = dbc.FormGroup(
-    [
-        dbc.Label("Write Operations"),
-        dash_table.DataTable(
-            id='temp',
-            columns=[
-                {'id': 'transition', 'name': 'transition'},
-                {'id': 'guard', 'name': 'guard',
-                 'presentation': 'dropdown'},
-            ],
-            editable=True
-        ),
-        dbc.FormText(
-            "Click here if you want to apply the current guards to the digital twin",
-            color="secondary",
-        ),
-    ]
-)
-
-tab1_content = dbc.Col(
-    [
-        html.Hr(),
-        html.H2("Current Valve Setting"),
-        html.Hr(),
-        html.Div(
-            id='valve_container',
-            children=[],
-            style={'width': '100%', 'display': 'inline-block',
-                   'outline': 'thin lightgrey solid'}
-        ),
-        html.Hr(),
-        html.H2("Current Write Operation Setting"),
-        html.Hr(),
-        html.Div(
-            id='write_container',
-            children=[],
-            style={'width': '100%', 'display': 'inline-block',
-                   'outline': 'thin lightgrey solid'}
-        ),
-    ], width=12
-)
+def template_current_configuration(valve_knob_list, activity_variant_table):
+    return dbc.Col(
+        [
+            html.Hr(),
+            html.H2("Current Valve Setting"),
+            html.Hr(),
+            html.Div(
+                id='valve_container',
+                children=valve_knob_list,
+                style={'width': '100%', 'display': 'inline-block',
+                       'outline': 'thin lightgrey solid'}
+            ),
+            html.Hr(),
+            html.H2("Current Activity Variants Setting"),
+            html.Hr(),
+            html.Div(
+                id='activity_variant_container',
+                children=activity_variant_table,
+                style={'width': '100%', 'display': 'inline-block',
+                       'outline': 'thin lightgrey solid'}
+            ),
+            html.Div(
+                dcc.Input(id="action-name-input", type="text", placeholder="Type Action Name", debounce=True), style={'display': 'none'}
+            )
+        ], width=12
+    )
 
 
-def template_configuration_edit(edit_valve_knob_list, edit_write_operation_table):
+def template_configuration_edit(edit_valve_knob_list, edit_activity_variant_data, activity_variants):
     return dbc.Col(
         [
             html.Hr(),
@@ -148,21 +120,36 @@ def template_configuration_edit(edit_valve_knob_list, edit_write_operation_table
                        'outline': 'thin lightgrey solid'}
             ),
             html.Hr(),
-            html.H2("Change Write Operation"),
+            html.H2("Change Activity Variant"),
             html.Hr(),
             html.Div(
-                id='write_container_edit',
-                children=edit_write_operation_table,
+                id='activity_variant_container_edit',
+                # children=edit_activity_variant_table,
+                children=dash_table.DataTable(
+                    id='activity-variant-edit',
+                    data=edit_activity_variant_data,
+                    columns=[
+                        {'id': ACTIVITY_VARIANT_TR_NAME,
+                            'name': ACTIVITY_VARIANT_TR_NAME},
+                        {'id': ACTIVITY_VARIANT_NAME, 'name': ACTIVITY_VARIANT_NAME,
+                            'presentation': 'dropdown'}
+                    ],
+                    editable=True,
+                    dropdown={
+                        ACTIVITY_VARIANT_NAME: {
+                            'options': [
+                                {'label': variant.name, 'value': variant.name}
+                                for variant in activity_variants
+                            ]
+                        }
+                    }
+                ),
                 style={'width': '100%', 'display': 'inline-block',
                        'outline': 'thin lightgrey solid'}
-            )
+            ),
         ], width=12
     )
 
-
-# tab2_content = dbc.Col([dash_table.DataTable(
-#     id='edit-write-operation-table'
-# )], width=12)
 
 configuration_panel = dbc.Col(
     [
@@ -171,19 +158,16 @@ configuration_panel = dbc.Col(
                 dcc.Tabs(
                     id='tabs-configuration', value='tab-show-configuration',
                     children=[
-                        dcc.Tab(tab1_content, label="Current Configuration",
+                        dcc.Tab(label="Current Configuration",
                                 value="tab-show-configuration"),
-                        dcc.Tab(html.Div(id='edit-write-operation-table'), label='Action Definition',
+                        dcc.Tab(html.Div(id='activity-variant-edit'), label='Action Definition',
                                 value="tab-edit-configuration")
                     ]
                 ), width=12
             )
         ),
         dbc.Row(
-            html.Div(id='tabs-configuration-content',
-                     children=[
-                         dcc.Input(id="action-name-input", type="text", placeholder="Type Action Name", debounce=True)]
-                     ), justify='end'
+            html.Div(id='tabs-configuration-content'), justify='end'
         ),
     ],
     width=6
@@ -192,6 +176,9 @@ configuration_panel = dbc.Col(
 control_view_content = dbc.Row(
     [
         dcc.Store(id='control-view-ocpn-dot', storage_type='session', data=""),
+        html.Div(
+            dcc.Input(id="action-name-input", type="text", placeholder="Type Action Name", debounce=True), style={'display': 'none'}
+        ),
         dcc.ConfirmDialog(
             id='confirm-define-action',
             message='An action is defined.',
@@ -204,7 +191,7 @@ control_view_content = dbc.Row(
     style={"height": "100vh"},
 )
 
-page_layout = container('Design Digital Twin Interface Model',
+page_layout = container('Digital Twin Interface Model: Control View',
                         [
                             buttons,
                             control_view_content
@@ -216,20 +203,69 @@ page_layout = container('Design Digital Twin Interface Model',
     Output('tabs-configuration-content', 'children'),
     Input('tabs-configuration', 'value'),
     State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
-    State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data')
+    State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
+    State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
+    State('config-dir', 'data')
+    # State('valve-store', 'data'),
 )
-def render_content(tab, value, cview_jobs):
+def render_content(tab, value, dashboard_jobs, cview_jobs, config_dir):
     if tab == 'tab-show-configuration':
-        return []
-    elif tab == 'tab-edit-configuration':
-        edit_write_operations = {}
-        edit_valves = {}
-        # if value is None:
-        #     value = old_value
         user = request.authorization['username']
         log_hash, date = read_global_signal_value(value)
-        dt = get_remote_data(user, log_hash, cview_jobs,
-                             AvailableTasks.STORE_CONFIG.value)
+        dt = get_remote_data(user, log_hash, dashboard_jobs,
+                             AvailableTasks.SIMULATE.value)
+
+        valve_knob_list = []
+        count = 0
+        for valve in dt.valves:
+            valve_knob = html.Div(
+                style={'width': '33%', 'display': 'inline-block',
+                       'outline': 'thin lightgrey solid', 'padding': 10},
+                children=[
+                    html.Div(
+                        daq.Knob(
+                            size=150,
+                            min=valve.r_min,
+                            max=valve.r_max,
+                            value=valve.value,
+                            label=valve.name,
+                            disabled=True
+                        )
+                    ),
+                    html.Div(
+                        f'Set to {valve.value}', style={'display': 'inline'}
+                    )
+                ]
+            )
+            valve_knob_list.append(valve_knob)
+            count += 1
+
+        activity_variant_data = []
+        for tr in dt.ocpn.transitions:
+            record = {}
+            record[ACTIVITY_VARIANT_TR_NAME] = tr.name
+            for variant in dt.activity_variants:
+                if variant.tr_name == tr.name:
+                    record[ACTIVITY_VARIANT_NAME] = variant.name
+            if ACTIVITY_VARIANT_NAME not in record:
+                record[ACTIVITY_VARIANT_NAME] = 'Not assigned'
+            activity_variant_data.append(record)
+
+        activity_variant_table = dash_table.DataTable(
+            data=activity_variant_data,
+            columns=[
+                {'id': ACTIVITY_VARIANT_TR_NAME,
+                    'name': ACTIVITY_VARIANT_TR_NAME},
+                {'id': ACTIVITY_VARIANT_NAME, 'name': ACTIVITY_VARIANT_NAME}
+            ]
+        )
+        return template_current_configuration(valve_knob_list, activity_variant_table)
+    elif tab == 'tab-edit-configuration':
+        edit_valves = {}
+        user = request.authorization['username']
+        log_hash, date = read_global_signal_value(value)
+        dt = get_remote_data(user, log_hash, dashboard_jobs,
+                             AvailableTasks.SIMULATE.value)
         edit_valve_knob_list = []
         count = 0
         for valve in dt.valves:
@@ -261,194 +297,48 @@ def render_content(tab, value, cview_jobs):
             edit_valve_knob_list.append(new_valve_edit)
             count += 1
 
-        for write_operation in dt.writes:
-            if write_operation.tr_name not in edit_write_operations:
-                edit_write_operations[write_operation.tr_name] = [
-                    write_operation.name]
-            else:
-                edit_write_operations[write_operation.tr_name].append(
-                    write_operation.name)
+        edit_activity_variant_data = []
+        for tr in dt.ocpn.transitions:
+            record = {}
+            record[ACTIVITY_VARIANT_TR_NAME] = tr.name
+            for variant in dt.activity_variants:
+                if variant.tr_name == tr.name:
+                    record[ACTIVITY_VARIANT_NAME] = variant.name
+                    record[ACTIVITY_VARIANT_DESC] = str(variant.writes)
+            if ACTIVITY_VARIANT_NAME not in record:
+                record[ACTIVITY_VARIANT_NAME] = 'Not assigned'
+            edit_activity_variant_data.append(record)
 
-        edit_write_operation_data = [
-            {WRITE_NAME: w.name, WRITE_OBJ_TYPE: w.object_type,
-             WRITE_ATTR_NAME: w.attr_name, WRITE_TR_NAME: w.tr_name} for w in dt.writes
-        ]
-
-        edit_write_operation_table = dash_table.DataTable(
-            id='edit-write-operation-table',
-            data=edit_write_operation_data,
-            columns=[
-                {'id': 'name', 'name': 'Name'},
-                {'id': 'object_type', 'name': 'Object Type'},
-                {'id': 'attr_name', 'name': 'Attribute Name'},
-                {'id': 'tr_name', 'name': 'Transition',
-                    'presentation': 'dropdown'},
-            ],
-
-            editable=True,
-            dropdown={
-                'tr_name': {
-                    'options': [
-                        {'label': tr.name, 'value': tr.name}
-                        for tr in dt.ocpn.transitions
-                    ]
-                }
-            }
-        ),
-
-        # store_redis(edit_write_operations, edit_write_operations_task)
         store_redis(edit_valves, edit_valves_task)
 
-        return template_configuration_edit(edit_valve_knob_list, edit_write_operation_table)
+        return template_configuration_edit(edit_valve_knob_list, edit_activity_variant_data, dt.activity_variants)
 
 
 @ app.callback(
-    Output('control-view-ocpn-dot', 'data'),
-    Input(show_button_id(load_dtim_title_1), 'n_clicks'),
-    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
-    # State(global_signal_id_maker(PARSE_TITLE), 'children'),
-    State(temp_jobs_store_id_maker(DESIGN_TITLE), 'data'),
-    State('control-view-ocpn-dot', 'data')
-)
-def load_dtim(n, value, control_jobs, old_dot):
-    if n is not None:
-        # if value is None:
-        #     value = old_value
-        user = request.authorization['username']
-        log_hash, date = read_global_signal_value(value)
-        dt = get_remote_data(user, log_hash, control_jobs,
-                             AvailableTasks.DESIGN.value)
-        gviz = dt_vis_factory.apply(dt, parameters={"format": "svg"})
-        dt_dot = str(gviz)
-        return dt_dot
-    return old_dot
-
-
-@ app.callback(
-    Output(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
-    Output('valve_container', 'children'),
-    Output('write_container', 'children'),
     Output('confirm-define-action', 'displayed'),
-    Input(show_button_id(update_control_view_title), 'n_clicks'),
+    Output('action-definition', 'data'),
     Input(show_button_id(define_action_title), 'n_clicks'),
     State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
-    # State(global_signal_id_maker(PARSE_TITLE), 'children'),
-    State(temp_jobs_store_id_maker(DESIGN_TITLE), 'data'),
-    State(temp_jobs_store_id_maker(CVIEW_TITLE), 'data'),
-    State('valve-store', 'data'),
-    State('config-dir', 'data'),
-    State('edit-write-operation-table', 'data'),
+    State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
+    State('activity-variant-edit', 'data'),
     State('action-name-input', 'value'),
+    State('action-definition', 'data'),
 )
-def update_cview_and_define_action(n_update, n_action, value, design_jobs, cview_jobs, valves, config_dir, edit_write_operations, action_name):
+def define_action(n_action, value, dashboard_jobs, edit_activity_variants, action_name, action_definition):
     ctx = dash.callback_context
     if not ctx.triggered:
         button_id = 'No clicks yet'
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
         button_value = ctx.triggered[0]['value']
-    if button_id == show_button_id(update_control_view_title):
-        conf_valves, conf_write_operations = read_config(config_dir)
-        print("configuration from {}".format(config_dir))
-
-        user = request.authorization['username']
-        log_hash, date = read_global_signal_value(value)
-        dt = get_remote_data(user, log_hash, design_jobs,
-                             AvailableTasks.DESIGN.value)
-
-        valve_knob_list = []
-        if valves is not None:
-            count = 0
-            for name, value in valves.items():
-                dt.update_valve(name, conf_valves[name])
-                r_min = valves[name]['r_min']
-                r_max = valves[name]['r_max']
-                cur = conf_valves[name]
-                valve_knob = html.Div(
-                    style={'width': '33%', 'display': 'inline-block',
-                           'outline': 'thin lightgrey solid', 'padding': 10},
-                    children=[
-                        html.Div(
-                            daq.Knob(
-                                size=150,
-                                min=r_min,
-                                max=r_max,
-                                value=cur,
-                                label=name,
-                                disabled=True
-                            )
-                        ),
-                        html.Div(
-                            f'Set to {cur}', style={'display': 'inline'}
-                        )
-                    ]
-                )
-                valve_knob_list.append(valve_knob)
-                count += 1
-
-        for wo in conf_write_operations.keys():
-            dt.update_write(wo, conf_write_operations[wo][WRITE_TR_NAME])
-
-        write_operations = {}
-        for write_operation in dt.writes:
-            if write_operation.tr_name not in write_operations:
-                write_operations[write_operation.tr_name] = [
-                    write_operation.name]
-            else:
-                write_operations[write_operation.tr_name].append(
-                    write_operation.name)
-
-        write_operation_data = [
-            {WRITE_NAME: w.name, WRITE_OBJ_TYPE: w.object_type,
-             WRITE_ATTR_NAME: w.attr_name, WRITE_TR_NAME: w.tr_name} for w in dt.writes
-        ]
-
-        write_operation_table = dash_table.DataTable(
-            id='write-operation-table',
-            data=write_operation_data,
-            columns=[
-                {'id': 'name', 'name': 'Name'},
-                {'id': 'object_type', 'name': 'Object Type'},
-                {'id': 'attr_name', 'name': 'Attribute Name'},
-                {'id': 'tr_name', 'name': 'Transition',
-                    'presentation': 'dropdown'},
-            ],
-            dropdown={
-                'tr_name': {
-                    'options': [
-                        {'label': tr.name, 'value': tr.name}
-                        for tr in dt.ocpn.transitions
-                    ]
-                }
-            }
-        ),
-        task_id = run_task(
-            design_jobs, log_hash, AvailableTasks.STORE_CONFIG.value, store_redis_backend, data=dt)
-        return design_jobs, valve_knob_list, write_operation_table, False
-    elif button_id == show_button_id(define_action_title):
-        user = request.authorization['username']
-        log_hash, date = read_global_signal_value(value)
-        dt = get_remote_data(user, log_hash, cview_jobs,
-                             AvailableTasks.STORE_CONFIG.value)
-        edit_valves = get_redis_data(edit_valves_task)
-        valve_actions = []
-        for valve in edit_valves:
-            valve_action = ValveAction(valve, edit_valves[valve])
-            valve_actions.append(valve_action)
-        write_operation_actions = []
-        for edit_wo in edit_write_operations:
-            write_operation_action = WriteOperationAction(
-                edit_wo[WRITE_NAME], edit_wo[WRITE_TR_NAME])
-            write_operation_actions.append(write_operation_action)
-
-        action = StaticAction(name=action_name, valve_actions=valve_actions,
-                              write_operation_actions=write_operation_actions)
-        dt.action_engine.add_action(action)
-        task_id = run_task(
-            cview_jobs, log_hash, AvailableTasks.STORE_CONFIG.value, store_redis_backend, data=dt)
-        return cview_jobs, dash.no_update, dash.no_update, True
+    if button_value is not None:
+        if button_id == show_button_id(define_action_title):
+            edit_valves = get_redis_data(edit_valves_task)
+            action_definition[action_name] = {'valves': edit_valves,
+                                              'activity_variants': edit_activity_variants}
+            return True, action_definition
     else:
-        return no_update(3), False
+        return False, dash.no_update
 
 
 @ app.callback(
@@ -465,29 +355,38 @@ def display_output(value, valve_name):
 
 
 @ app.callback(
-    Output({'type': 'dynamic-dropdown-output', 'index': MATCH}, 'children'),
-    [Input({'type': 'dynamic-dropdown', 'index': MATCH}, 'value'),
-     ],
-    State({'type': 'dynamic-dropdown', 'index': MATCH}, 'id')
-)
-def save_edit_write_operations(write_name, dropdown_id):
-    tr_name = dropdown_id['index']
-    edit_write_operations = get_redis_data(edit_write_operations_task)
-    # new_edit_write_operations = copy.deepcopy(old_edit_write_operations)
-    edit_write_operations[tr_name] = write_name
-    # print("WRITE OPERATIONS UPLOADED")
-    # print(new_edit_write_operations)
-    store_redis(edit_write_operations, edit_write_operations_task)
-    return dash.no_update
-
-
-@ app.callback(
     Output("gv-control-view-dtim", "dot_source"),
     Output("gv-control-view-dtim", "engine"),
     Input('url', 'pathname'),
-    Input("control-view-ocpn-dot", "data")
+    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
+    State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
 )
-def show_control_view_dtim(pathname, value):
-    if pathname == CVIEW_URL and value is not None:
-        return value, "dot"
+def show_control_view_dtim(pathname, value, dashboard_jobs):
+    if pathname == CVIEW_URL:
+        user = request.authorization['username']
+        log_hash, date = read_global_signal_value(value)
+        dt = get_remote_data(user, log_hash, dashboard_jobs,
+                             AvailableTasks.SIMULATE.value)
+        gviz = dt_vis_factory.apply(dt, parameters={"format": "svg"})
+        dt_dot = str(gviz)
+        return dt_dot, "dot"
     return no_update(2)
+
+
+# @ app.callback(
+#     Output('control-view-ocpn-dot', 'data'),
+#     Input(show_button_id(load_dtim_title_1), 'n_clicks'),
+#     State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
+#     State(temp_jobs_store_id_maker(DASHBOARD_TITLE), 'data'),
+#     State('control-view-ocpn-dot', 'data')
+# )
+# def load_dtim(n, value, dashboard_jobs, old_dot):
+#     if n is not None:
+#         user = request.authorization['username']
+#         log_hash, date = read_global_signal_value(value)
+#         dt = get_remote_data(user, log_hash, dashboard_jobs,
+#                              AvailableTasks.SIMULATE.value)
+#         gviz = dt_vis_factory.apply(dt, parameters={"format": "svg"})
+#         dt_dot = str(gviz)
+#         return dt_dot
+#     return old_dot

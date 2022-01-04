@@ -12,6 +12,8 @@ def navbar():
                         style=LINK_DARK_CONTENT_STYLE)),
             dbc.NavItem(dbc.NavLink("Design", href=DESIGN_URL,
                         style=LINK_DARK_CONTENT_STYLE)),
+            dbc.NavItem(dbc.NavLink("Dashboard & Impact Analysis", href=DASHBOARD_URL,
+                        style=LINK_DARK_CONTENT_STYLE)),
             dbc.NavItem(dbc.NavLink("Control-View", href=CVIEW_URL,
                         style=LINK_DARK_CONTENT_STYLE)),
             # dbc.NavItem(dbc.NavLink("Diagnostics-View", href=DVIEW_URL,
@@ -21,8 +23,6 @@ def navbar():
             # dbc.NavItem(dbc.NavLink("Action-Pattern", href=PATTERN_URL,
             #             style=LINK_DARK_CONTENT_STYLE)),
             dbc.NavItem(dbc.NavLink("Operational-View", href=OVIEW_URL,
-                        style=LINK_DARK_CONTENT_STYLE)),
-            dbc.NavItem(dbc.NavLink("Impact Analysis", href=DASHBOARD_URL,
                         style=LINK_DARK_CONTENT_STYLE)),
             # dbc.NavItem(dbc.NavLink("About", href=ABOUT_URL,
             #             style=LINK_DARK_CONTENT_STYLE))

@@ -1,4 +1,4 @@
-from dtween.available.constants import TRANSITION, GUARD
+from dtween.available.constants import TRANSITION, GUARD, ACTIVITY_VARIANTS, VALVES
 import pandas as pd
 from collections import OrderedDict
 import json
@@ -20,7 +20,7 @@ def guard_df_to_dict(df) -> OrderedDict:
 def read_config(directory):
     with open(directory) as config_json:
         config = json.loads(config_json.read())
-    return config['valves'], config['write_operations']
+    return config[VALVES], config[ACTIVITY_VARIANTS]
 
 
 def update_config(directory, valve, value):
