@@ -21,11 +21,11 @@ We first need to design DT-IMs based on event data and user inputs.
     
 - Go to **Design**. As shown below, 1) discover an OCPN, 2) upload valves, 3) upload guards, and 4) upload activity variants, and 5) connect to the target information system. You can see the discovered OCPN, uploaded valves, uploaded guards, and uploaded activity variants in the same page.
     
-    ![Untitled](resources/Untitled 1.png)
+    ![Untitled](resources/Untitled%201.png)
     
 - As shown below, 1) apply valves, 2) apply guards, and 3) apply activity variants to enhance the discovered OCPN and produce an DT-IM.
     
-    ![Untitled](resources/Untitled 2.png)
+    ![Untitled](resources/Untitled%202.png)
     
 
 ## 2. Synchronizing to the target information system and updating control/operational views of DT-IM.
@@ -45,13 +45,13 @@ Next, we enhance the DT-IM discovered in the previous step to the target informa
 - Go to **Dashboard & Impact Analysis** and click Sync To Information System to synchronize the DT-IM with the target information system. The synchronization is based on the connection to the target system done in the previous step.
 - Go to Control-View, and you can see the current configuration, i.e., 1) current valve settings and 2) activity variant settings with 3) the DT-IM.
     
-    ![Untitled](resources/Untitled 3.png)
+    ![Untitled](resources/Untitled%203.png)
     
 - Go to Operational-View, and you can see the current operational states, i.e., 1) marking, 2) object value mapping, and 3) diagnostics as below. By clicking a place, you can see the marking of the place. The diagnostics are provided by selecting the analysis period and types of diagnostics.
     
-    ![Untitled](resources/Untitled 4.png)
+    ![Untitled](resources/Untitled%204.png)
     
-    ![Untitled](resources/Untitled 5.png)
+    ![Untitled](resources/Untitled%205.png)
     
 
 ## 3. Defining Actions
@@ -70,7 +70,7 @@ To analyze the impact of changes incurred by actions, we design actions. An acti
 
 - Go to Action Definition. As shown below, 1) specify action name, 2) define valve changes by adjusting knots, and 3) define activity variant changes by choosing activity variants.
     
-    ![Untitled](resources/Untitled 6.png)
+    ![Untitled](resources/Untitled%206.png)
     
 
 ## 4. Designing Action Instances
@@ -89,7 +89,7 @@ Based on the action definitions, we design action instances by specifying which 
 
 - Go to **Dashboard & Impact Analysis**. As shown below, 1) select an action, 2) specify the start and end time of executing the action, and 3) add an action instance. The timeline shows the overview of defined action instances.
     
-    ![Untitled](resources/Untitled 7.png)
+    ![Untitled](resources/Untitled%207.png)
     
 
 ## 5. Impact Analysis
@@ -110,11 +110,11 @@ The impact analysis aims to analyze the impact of the action instance by continu
 
 - As shown below, specify 1) the simulation step size (i.e., how much time of the reality each step will represent) and 2) the number of simulation steps (i.e., how many simulation steps we will use) Afterward, you can control the simulation by 3) starting the simulation of the target information system and 4) moving forward each step.
     
-    ![Untitled](resources/Untitled 8.png)
+    ![Untitled](resources/Untitled%208.png)
     
 - As shown below, 1) the vertical line in the timeline represents the progress of the simulation.  Once an action instance has been effective, we can 2) click the action instance in the timeline to see the pre-action impact scores as below. Moreover, by clicking the green box, we can analyze the impacted entities. Once an action instance is finished, we can click the action instance in the timeline to see the post-action impact scores as below.
     
-    ![Untitled](resources/Untitled 9.png)
+    ![Untitled](resources/Untitled%209.png)
     
 
 ## Deployment
@@ -174,7 +174,7 @@ To facilitate the test of the tool, we provide an experimental environment with 
 
 Below is the process model describing the P2P process in OCPN formalism:
 
-![Untitled](resources/Untitled 10.png)
+![Untitled](resources/Untitled%2010.png)
 
 - 24 resources are available with different business hours, each of them being responsible for multiple activities in the process.
 - Orders are randomly placed and the resources process the orders and the corresponding items and routes based on First-in-First-out rule.
