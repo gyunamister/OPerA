@@ -1,6 +1,6 @@
-# Tool manual - IMPACA
+# Tool manual - IMPACTA 
 
-*IMPACA* is an interactive tool implementing digital twins of organizations supporting impact analysis of changes in Process-Aware Information Systems (PAIS). 
+*IMPACTA * is an interactive tool implementing digital twins of organizations supporting impact analysis of changes in Process-Aware Information Systems (PAIS). 
 
 # User Manual
 
@@ -126,15 +126,15 @@ Please make sure to install the binaries of [Graphviz](https://graphviz.org/) an
 In the first shell:
 
 ```bash
-git clone https://github.com/gyunamister/impaca.git
-cd impaca/src/backend/db
+git clone https://github.com/gyunamister/impacta.git
+cd impacta/src/backend/db
 docker-compose up
 ```
 
 In the second shell:
 
 ```bash
-cd impaca/src/backend
+cd impacta/src/backend
 chmod +x ./run_celery.sh
 ./run_celery.sh
 ```
@@ -155,7 +155,7 @@ In the third shell:
 
 ```bash
 
-cd impaca/src/backend
+cd impacta/src/backend
 chmod +x ./run_impaca.sh
 ./run_impaca.sh
 ```

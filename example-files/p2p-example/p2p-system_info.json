@@ -1,4 +1,4 @@
 {
-    "dir-event-stream": "/Users/gyunam/Documents/DigitalTwin/example_logs/ocel/p2p-ocel1.jsonocel",
+    "dir-event-stream": "/Users/gyunam/Documents/DigitalTwin/example-files/p2p-example/p2p-streaming-ocel.jsonocel",
     "dir-system-config": "/Users/gyunam/Documents/DigitalTwin/example-files/p2p-example/p2p-config.json"
 }

@@ -70,6 +70,7 @@ venv.bak/
 
 # analysis
 /src/evaluation
+/src/infosystem
 /src/infosystem/logs
 /src/infosystem/database
 

@@ -1,3 +1,4 @@
+import pathlib
 import hashlib
 import base64
 from datetime import datetime
@@ -64,10 +65,10 @@ class SimulationController:
     #     pass
 
 
+path = pathlib.Path().resolve().parent.absolute()
 proc = subprocess.Popen(
-    ["python", "/Users/gyunam/Documents/DigitalTwin/example_code/oc_sim.py"], stdin=subprocess.PIPE)
+    ["python", f"{path}/sim/p2p.py"], stdin=subprocess.PIPE)
 sc = SimulationController(proc)
-print(sc.proc.pid)
 
 
 def set_proc(proc):
@@ -275,8 +276,8 @@ post_impact_content = dbc.Row(
         dbc.Col(
             id='obj-perf-impact',
             children=[
-                dcc.Dropdown(id='object-dropdown'),
                 dcc.Dropdown(id='object-perf-dropdown'),
+                dcc.Dropdown(id='object-dropdown'),
                 dcc.Dropdown(id='object-diag-dropdown'),
                 daq.LEDDisplay(
                     id='obj-perf-impact-display',
@@ -287,8 +288,8 @@ post_impact_content = dbc.Row(
         dbc.Col(
             id='func-perf-impact',
             children=[
-                dcc.Dropdown(id='function-dropdown'),
                 dcc.Dropdown(id='function-perf-dropdown'),
+                dcc.Dropdown(id='function-dropdown'),
                 dcc.Dropdown(id='function-diag-dropdown'),
                 daq.LEDDisplay(
                     id='func-perf-impact-display',

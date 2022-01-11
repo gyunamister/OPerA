@@ -69,12 +69,6 @@ def analyze_obj_perf(pre_act_obj_diag, post_act_obj_diag):
 
     # obj_post_impacts = {
     #     d: post_act_obj_diag[d][element] - pre_act_obj_diag.get(d, 0)[element] for d in post_act_obj_diag for element in post_act_obj_diag[d] if d in pre_act_obj_diag and element in pre_act_obj_diag[d]}
-
-    # FIXME UI test: random values
-    # for ot in ai.impacted_objects:
-    #     obj_post_impacts[ot] = {}
-    #     for obj_perf_metric in POST_OBJ_PERF_IMPACTS:
-    #         obj_post_impacts[ot][obj_perf_metric] = randrange(10)
     return obj_post_impacts
 
 
@@ -87,12 +81,6 @@ def analyze_func_perf(pre_act_func_diag, post_act_func_diag):
                 if element in pre_act_func_diag[d]:
                     func_post_impacts[d][element] = int(post_act_func_diag[d][element]) - \
                         int(pre_act_func_diag[d][element])
-
-    # FIXME UI test: random values
-    # for tr in ai.impacted_functions:
-    #     obj_post_impacts[tr.name] = {}
-    #     for obj_perf_metric in POST_FUNC_PERF_IMPACTS:
-    #         obj_post_impacts[tr.name][obj_perf_metric] = randrange(15)
     return func_post_impacts
 
 
