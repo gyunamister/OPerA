@@ -1,6 +1,6 @@
-# Tool manual - IMPACTA 
+# Tool manual - IMPACTA
 
-*IMPACTA * is an interactive tool implementing digital twins of organizations supporting impact analysis of changes in Process-Aware Information Systems (PAIS). 
+*IMPACTA* is an interactive tool implementing digital twins of organizations supporting impact analysis of changes in Process-Aware Information Systems (PAIS). 
 
 # User Manual
 
