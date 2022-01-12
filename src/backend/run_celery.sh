@@ -1,5 +1,5 @@
-export DTWEEN_PATH="/Users/gyunam/Documents/DigitalTwin/"
-export OCPA_PATH="/Users/gyunam/Documents/ocpa-core"
+# export DTWEEN_PATH="/Users/gyunam/Documents/DigitalTwin/"
+# export OCPA_PATH="/Users/gyunam/Documents/ocpa-core"
 dtween_path=$DTWEEN_PATH
 ocpa_path=$OCPA_PATH
 

@@ -127,6 +127,7 @@ In the first shell:
 
 ```bash
 git clone https://github.com/gyunamister/impacta.git
+git clone https://github.com/gyunamister/ocpa.git
 cd impacta/src/backend/db
 docker-compose up
 ```
@@ -134,6 +135,8 @@ docker-compose up
 In the second shell:
 
 ```bash
+export DTWEEN_PATH=<path_to_your_impacta_root> # impacta/
+export OCPA_PATH=<path_to_your_ocpa_root> # ocpa/
 cd impacta/src/backend
 chmod +x ./run_celery.sh
 ./run_celery.sh
@@ -154,7 +157,8 @@ celery -A tasks worker --loglevel=INFO -P eventlet
 In the third shell:
 
 ```bash
-
+export DTWEEN_PATH=<path_to_your_impacta_root> # impacta/
+export OCPA_PATH=<path_to_your_ocpa_root> # ocpa/
 cd impacta/src/backend
 chmod +x ./run_impaca.sh
 ./run_impaca.sh
