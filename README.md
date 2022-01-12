@@ -160,8 +160,8 @@ In the third shell:
 export DTWEEN_PATH=<path_to_your_impacta_root> # impacta/
 export OCPA_PATH=<path_to_your_ocpa_root> # ocpa/
 cd impacta/src/backend
-chmod +x ./run_impaca.sh
-./run_impaca.sh
+chmod +x ./run_dtween.sh
+./run_dtween.sh
 ```
 
 The default username is admin, and the default password is test123 for logging into the system available at 127.0.0.1/8051.
