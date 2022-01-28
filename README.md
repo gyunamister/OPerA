@@ -1,5 +1,7 @@
 # Tool manual - IMPACTA
 
+[![IMPACTA DEMO VIDEO](https://img.youtube.com/vi/J-3vyUlQq78/0.jpg)](https://www.youtube.com/watch?v=J-3vyUlQq78 "IMPACTA DEMO VIDEO")
+
 *IMPACTA* is an interactive tool implementing digital twins of organizations supporting impact analysis of changes in Process-Aware Information Systems (PAIS). 
 
 # User Manual
