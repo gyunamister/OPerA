@@ -1,0 +1,24 @@
+.Select-menu-outer {
+    display: block !important;
+}
+
+.number-plate-single {
+    width: 100%; 
+    background-color: #ffffff;
+    vertical-align: top;
+    box-shadow: none;
+    border: 0px solid #ededee;
+}
+
+.number-plate-single h3 {
+    text-align: center;
+}
+
+.number-plate-single p {
+    padding: .5rem;
+}
+
+.number-plate-single h5 {
+    text-align: center;
+    padding: .1rem;
+}

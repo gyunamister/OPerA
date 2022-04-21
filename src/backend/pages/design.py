@@ -1,0 +1,417 @@
+from flask import request
+from backend.param.settings import CeleryConfig, redis_pwd
+from time import sleep
+import redis
+import pickle
+from ocpa.objects.log.converter import factory as ocel_converter_factory
+from dtween.available.available import AvailableTasks
+from backend.tasks.tasks import get_remote_data, discover_ocpn, store_redis_backend
+from backend.util import run_task, read_global_signal_value, no_update, parse_contents, transform_to_valves, transform_to_writes, transform_to_activity_variants
+
+from ocpa.visualization.oc_petri_net import factory as ocpn_vis_factory
+import hashlib
+import base64
+
+
+from backend.components.misc import container, button, show_title_maker, show_button_id, temp_jobs_store_id_maker, global_form_load_signal_id_maker
+import dash_interactive_graphviz
+from dash.dependencies import Input, Output, State, MATCH
+import dash_html_components as html
+import dash_core_components as dcc
+import dash_bootstrap_components as dbc
+from backend.app import app
+import pandas as pd
+import dash_table
+import dash
+from backend.param.constants import DESIGN_TITLE, DESIGN_URL, PARSE_TITLE, JSON, GLOBAL_FORM_SIGNAL, VALVE_MIN, VALVE_MAX, VALVE_INIT, VALVE_NAME, VALVE_VALUE, WRITE_NAME, WRITE_OBJ_TYPE, WRITE_ATTR_NAME, TRANSITION, GUARD, WRITE_INIT, ACTIVITY_VARIANT_NAME, ACTIVITY_VARIANT_DESC, ACTIVITY_VARIANT_TR_NAME, ACTIVITY_VARIANT_DEFAULT
+
+
+discover_title = "Discover OCPN"
+upload_guard_title = "Upload Guards"
+upload_valve_title = "Upload Valves"
+# upload_write_title = "Upload Writes"
+upload_activity_variant_title = "Upload Activity Variants"
+
+apply_guard_title = "Apply Guards"
+apply_valve_title = "Apply Valves"
+# apply_write_title = "Apply Writes"
+apply_activity_variant_title = "Apply Activity Variants"
+apply_configuration_title = "Set default configuration"
+connect_db_title = "Connect to Information System"
+
+
+buttons = dbc.Row(
+    [
+        dbc.Col(button(discover_title, show_title_maker,
+                show_button_id), width='auto'),
+        # dbc.Col(dcc.Upload(id="upload-valve",
+        #         children=button(upload_valve_title, show_title_maker, show_button_id)), width='auto'),
+        # dbc.Col(dcc.Upload(id="upload-guard",
+        #         children=button(upload_guard_title, show_title_maker, show_button_id)), width='auto'),
+        # dbc.Col(dcc.Upload(id="upload-activity-variant",
+        #         children=button(upload_activity_variant_title, show_title_maker, show_button_id)), width='auto'),
+        # dbc.Col(dcc.Upload(id="upload-system-config",
+        #         children=button(connect_db_title, show_title_maker, show_button_id)), width='auto'),
+    ], justify='start', className="g-0",
+)
+
+guards_form = html.Div(
+    [
+        dbc.Label("Guards"),
+        dash_table.DataTable(
+            id='guard-table',
+            columns=[
+                {'id': 'transition', 'name': 'transition'},
+                {'id': 'guard', 'name': 'guard',
+                 'presentation': 'dropdown'},
+            ],
+            editable=True,
+            # style_table={'overflowX': 'auto'},
+            fixed_columns={'headers': True, 'data': 1},
+            style_table={'minWidth': '100%'}
+        ),
+        button(apply_guard_title,
+               show_title_maker, show_button_id),
+        dbc.FormText(
+            "Click here if you want to apply the current guards to the digital twin interface model",
+            color="secondary",
+        ),
+    ]
+)
+
+valves_form = html.Div(
+    [
+        dbc.Label("Valves"),
+        dash_table.DataTable(
+            id='valve-table',
+            columns=[
+                {'id': VALVE_NAME, 'name': VALVE_NAME},
+                {'id': VALVE_INIT, 'name': VALVE_INIT},
+                {'id': VALVE_MIN, 'name': VALVE_MIN},
+                {'id': VALVE_MAX, 'name': VALVE_MAX},
+            ],
+            editable=True,
+            style_table={'overflowX': 'auto'},
+        ),
+        button(apply_valve_title,
+               show_title_maker, show_button_id),
+        dbc.FormText(
+            "Click here if you want to apply the current valves to the digital twin interface model",
+            color="secondary",
+        ),
+    ]
+)
+
+# writes_form = html.Div(
+#     [
+#         dbc.Label("Writes"),
+#         dash_table.DataTable(
+#             id='write-table',
+#             columns=[
+#                 {'id': WRITE_NAME, 'name': WRITE_NAME},
+#                 {'id': WRITE_OBJ_TYPE, 'name': WRITE_OBJ_TYPE},
+#                 {'id': WRITE_ATTR_NAME, 'name': WRITE_ATTR_NAME},
+#                 {'id': WRITE_INIT, 'name': WRITE_INIT},
+#             ],
+#             editable=True,
+#             style_table={'overflowX': 'auto'},
+#         ),
+#         button(apply_write_title,
+#                show_title_maker, show_button_id),
+#         dbc.FormText(
+#             "Click here if you want to apply the current valves to the digital twin interface model",
+#             color="secondary",
+#         ),
+#     ]
+# )
+
+activity_variants_form = html.Div(
+    [
+        dbc.Label("Activity Variant"),
+        dash_table.DataTable(
+            id='activity-variant-table',
+            columns=[
+                {'id': ACTIVITY_VARIANT_NAME, 'name': ACTIVITY_VARIANT_NAME},
+                {'id': ACTIVITY_VARIANT_DESC, 'name': ACTIVITY_VARIANT_DESC},
+                {'id': ACTIVITY_VARIANT_DEFAULT, 'name': ACTIVITY_VARIANT_DEFAULT}
+            ],
+            editable=True,
+            style_table={'overflowX': 'auto'},
+        ),
+        button(apply_activity_variant_title,
+               show_title_maker, show_button_id),
+        dbc.FormText(
+            "Click here if you want to apply the current valves to the digital twin interface model",
+            color="secondary",
+        ),
+    ]
+)
+
+
+design_content = dbc.Row(
+    [
+        dcc.Store(id='ocpn-dot', storage_type='session', data=""),
+        dcc.ConfirmDialog(
+            id='confirm-guard-update',
+            message='Guard information is updated.',
+        ),
+        dbc.Col(
+            dash_interactive_graphviz.DashInteractiveGraphviz(id="gv"), width=6
+        ),
+        # dbc.Col(
+        #     [
+        #         valves_form,
+        #         guards_form,
+        #         activity_variants_form
+        #     ],
+        #     width=6
+        # ),
+
+    ],
+    justify='center',
+    style={"height": "100vh"},
+)
+
+page_layout = container('Discover Object-Centric Petri Nets',
+                        [
+                            buttons,
+                            design_content
+                        ]
+                        )
+
+
+@ app.callback(
+    Output("gv", "dot_source"),
+    Output("gv", "engine"),
+    Input('url', 'pathname'),
+    Input("ocpn-dot", "data")
+)
+def show_ocpn(pathname, value):
+    if pathname == DESIGN_URL and value is not None:
+        return value, "dot"
+    return no_update(2)
+
+
+@ app.callback(
+    Output("selected", "children"),
+    Input("gv", "selected")
+)
+def show_selected(value):
+    return html.Div(value)
+
+
+@ app.callback(
+    Output(temp_jobs_store_id_maker(DESIGN_TITLE), 'data'),
+    Output('ocpn-dot', 'data'),
+    Input(show_button_id(discover_title), 'n_clicks'),
+    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
+    State(temp_jobs_store_id_maker(PARSE_TITLE), 'data')
+)
+def run_discover_ocpn(n_discover, value, data_jobs):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        button_id = 'No clicks yet'
+    else:
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        button_value = ctx.triggered[0]['value']
+
+    if button_value is not None:
+        if button_id == show_button_id(discover_title):
+            log_hash, date = read_global_signal_value(value)
+            user = request.authorization['username']
+            data = get_remote_data(user, log_hash, data_jobs,
+                                   AvailableTasks.PARSE.value)
+            eve_df, obj_df = ocel_converter_factory.apply(
+                data, variant='json_to_mdl')
+            task_id = run_task(
+                data_jobs, log_hash, AvailableTasks.DESIGN.value, discover_ocpn, data=eve_df)
+            ocpn = get_remote_data(user, log_hash, data_jobs,
+                                   AvailableTasks.DESIGN.value)
+            gviz = ocpn_vis_factory.apply(ocpn, parameters={"format": "svg"})
+            ocpn_dot = str(gviz)
+            return data_jobs, ocpn_dot
+    return no_update(2)
+
+
+@ app.callback(
+    Output('valve-table', 'data'),
+    Input('valve-store', 'data'),
+)
+def update_valve_table(valves):
+    # df = guards_to_df(guards)
+    # guards = [{'transition': 'notify', 'guard': 'g1'}, {'transition': 'split', 'guard': 'g2'}, {
+    #     'transition': 'retry', 'guard': 'g3'}, {'transition': 'create', 'guard': 'g4'}]
+    if valves is not None:
+        valve_table = [{VALVE_NAME: v, VALVE_INIT: valves[v][VALVE_INIT],
+                        VALVE_MIN: valves[v][VALVE_MIN], VALVE_MAX: valves[v][VALVE_MAX]} for v in valves]
+        return valve_table
+    else:
+        dash.no_update
+
+
+# @ app.callback(
+#     Output('write-table', 'data'),
+#     Input('write-store', 'data'),
+# )
+# def update_write_table(writes):
+#     if writes is not None:
+#         write_table = [{
+#             WRITE_NAME: w,
+#             WRITE_OBJ_TYPE: writes[w][WRITE_OBJ_TYPE],
+#             WRITE_ATTR_NAME: writes[w][WRITE_ATTR_NAME],
+#             WRITE_INIT: writes[w][WRITE_INIT]
+#         } for w in writes]
+#         return write_table
+#     else:
+#         dash.no_update
+
+
+@ app.callback(
+    Output('activity-variant-table', 'data'),
+    Input('activity-variant-store', 'data'),
+)
+def update_activity_variant_table(activity_variants):
+    if activity_variants is not None:
+        activity_variant_table = [{
+            ACTIVITY_VARIANT_NAME: variant,
+            ACTIVITY_VARIANT_DESC: str(activity_variants[variant][ACTIVITY_VARIANT_DESC]),
+            ACTIVITY_VARIANT_DEFAULT: activity_variants[variant][ACTIVITY_VARIANT_DEFAULT]
+        } for variant in activity_variants]
+        return activity_variant_table
+    else:
+        dash.no_update
+
+
+@ app.callback(
+    Output('guard-table', 'data'),
+    Output('guard-table', 'dropdown'),
+    Input('guard-store', 'data'),
+)
+def update_guard_table(guards):
+    if guards is not None:
+        dropdown = {
+            'guard': {
+                'options': [{'label': d['guard'], 'value': d['guard']} for d in guards]
+            }
+        }
+        return guards, dropdown
+    else:
+        return guards, dash.no_update
+
+
+@ app.callback(
+    Output('guard-store', 'data'),
+    Input('upload-guard', 'contents'),
+    State('guard-store', 'data')
+)
+def upload_guards(content, old_guards):
+    if content is not None:
+        data, success = parse_contents(content, JSON)
+        guards = data['guards']
+        return guards
+    else:
+        return old_guards
+
+
+@ app.callback(
+    Output('valve-store', 'data'),
+    Input('upload-valve', 'contents'),
+    State('valve-store', 'data')
+)
+def upload_valves(content, old_valves):
+    if content is not None:
+        data, success = parse_contents(content, JSON)
+        valves = data['valves']
+        return valves
+    else:
+        return old_valves
+
+
+# @ app.callback(
+#     Output('write-store', 'data'),
+#     Input('upload-write', 'contents'),
+#     State('write-store', 'data')
+# )
+# def upload_writes(content, old_writes):
+#     if content is not None:
+#         data, success = parse_contents(content, JSON)
+#         writes = data['writes']
+#         return writes
+#     else:
+#         return old_writes
+
+
+@ app.callback(
+    Output('activity-variant-store', 'data'),
+    Input('upload-activity-variant', 'contents'),
+    State('activity-variant-store', 'data')
+)
+def activity_variants(content, activity_variants):
+    if content is not None:
+        data, success = parse_contents(content, JSON)
+        activity_variants = data['activity_variants']
+        return activity_variants
+    else:
+        return activity_variants
+
+
+@ app.callback(
+    Output('valve-slider', 'min'),
+    Output('valve-slider', 'max'),
+    Output('valve-slider', 'value'),
+    Output('valve-slider', 'marks'),
+    Input('valve-dropdown', 'value'),
+    State('valve-store', 'data'),
+)
+def update_valves(selected, valves):
+    if selected is not None:
+        r_min = valves[selected]['r_min']
+        r_max = valves[selected]['r_max']
+        cur = valves[selected]['default']
+        marks = {
+            r_min: {'label': 'Min: {}'.format(r_min), 'style': {'color': '#77b0b1'}},
+            r_max: {'label': 'Max: {}'.format(r_max), 'style': {
+                'color': '#f50'}}
+        }
+        return r_min, r_max, cur, marks
+    else:
+        return no_update(4)
+
+
+@app.callback(
+    Output('current-valve-value', 'children'),
+    Input('valve-slider', 'value')
+)
+def valve_action(value):
+    return "Set value to: {}".format(value)
+
+
+@ app.callback(
+    Output('valve-dropdown', 'options'),
+    Output('valve-dropdown', 'value'),
+    Input('valve-store', 'data')
+)
+def update_valve(valves):
+    if valves is not None:
+        options = [{'label': name, 'value': name}
+                   for name, value in valves.items()]
+        return options, options[0]['value']
+    else:
+        return no_update(2)
+
+
+@ app.callback(
+    Output('log-dir', 'data'),
+    Output('config-dir', 'data'),
+    Input('upload-system-config', 'contents'),
+    State('log-dir', 'data'),
+    State('config-dir', 'data'),
+)
+def connect_to_system(content, old_log_dir, old_config_dir):
+    if content is not None:
+        data, success = parse_contents(content, JSON)
+        log_dir = data['dir-event-stream']
+        config_dir = data['dir-system-config']
+        return log_dir, config_dir
+    else:
+        return old_log_dir, old_config_dir
