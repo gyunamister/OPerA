@@ -27,7 +27,6 @@ venv.bak/
 
 # Resources
 *.pptx
-*.csv
 *.pickle
 *.zip
 # *.png
