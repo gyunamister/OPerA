@@ -29,57 +29,81 @@ class AvailablePerformanceMetric(Enum):
 
 class AvailableAggregators(Enum):
     UNDEFINED = ""
-    AVG = 'average'.title()
+    MEAN = 'mean'.title()
     MED = 'median'.title()
     STD = 'standard deviation'.title()
     MIN = 'minimum'.title()
     MAX = 'maximum'.title()
 
 
+class AvailablePerformanceAggregation(Enum):
+    MEAN = 'mean'.title()
+    MED = 'median'.title()
+    MIN = 'minimum'.title()
+    MAX = 'maximum'.title()
+    STD = 'standard deviation'.title()
+
+
 class DefaultDiagnostics(Enum):
+    GROUP_SIZE = 'object count'.title()
+    WAITING_TIME = 'waiting time'.title()
+    SERVICE_TIME = 'service time'.title()
+    SOJOURN_TIME = 'sojourn time'.title()
+    SYNCHRO_TIME = 'synchronization time'.title()
+    POOLING_TIME = 'pooling time'.title()
+    LAGGING_TIME = 'lagging time'.title()
+    FLOW_TIME = 'flow time'.title()
     ACT_FREQ = 'activity frequency'.title()
-    FLOW_FREQ = 'flow frequency'.title()
-    AVG_SOJOURN_TIME = 'avg. sojourn time'.title()
-    MED_SOJOURN_TIME = 'med. sojourn time'.title()
-    MIN_SOJOURN_TIME = 'min. sojourn time'.title()
-    MAX_SOJOURN_TIME = 'max. sojourn time'.title()
+    ARC_FREQ = 'arc frequency'.title()
 
 
 class AvailableDiagnostics(Enum):
+    GROUP_SIZE = 'object count'.title()
+    WAITING_TIME = 'waiting time'.title()
+    SERVICE_TIME = 'service time'.title()
+    SOJOURN_TIME = 'sojourn time'.title()
+    SYNCHRO_TIME = 'synchronization time'.title()
+    POOLING_TIME = 'pooling time'.title()
+    LAGGING_TIME = 'lagging time'.title()
+    FLOW_TIME = 'flow time'.title()
     ACT_FREQ = 'activity frequency'.title()
-    AVG_GROUP_SIZE = 'avg. group size'.title()
-    MED_GROUP_SIZE = 'med. group size'.title()
-    MIN_GROUP_SIZE = 'min. group size'.title()
-    MAX_GROUP_SIZE = 'max. group size'.title()
-    FLOW_FREQ = 'flow frequency'.title()
-    AVG_SERVICE_TIME = 'avg. service time'.title()
-    MED_SERVICE_TIME = 'med. service time'.title()
-    MIN_SERVICE_TIME = 'min. service time'.title()
-    MAX_SERVICE_TIME = 'max. service time'.title()
-    AVG_WAITING_TIME = 'avg. waiting time'.title()
-    MED_WAITING_TIME = 'med. waiting time'.title()
-    MIN_WAITING_TIME = 'min. waiting time'.title()
-    MAX_WAITING_TIME = 'max. waiting time'.title()
-    AVG_SOJOURN_TIME = 'avg. sojourn time'.title()
-    MED_SOJOURN_TIME = 'med. sojourn time'.title()
-    MIN_SOJOURN_TIME = 'min. sojourn time'.title()
-    MAX_SOJOURN_TIME = 'max. sojourn time'.title()
-    PRODUCED_TOKENS = 'produced tokens'.title()
-    CONSUMED_TOKENS = 'consumed tokens'.title()
-    MISSING_TOKENS = 'missing tokens'.title()
-    REMAINING_TOKENS = 'remaining tokens'.title()
-    ACT_PROB = 'routing probability'.title()
-    TOTAL_LOGMOVE = 'tot. move on log'.title()
-    TOTAL_REWORK = 'tot. rework'.title()
-    TOTAL_MODELMOVE = 'tot. move on model'.title()
-    AVG_THROUGHPUT_TIME = 'avg. throughput time'.title()
-    MED_THROUGHPUT_TIME = 'med. throughput time'.title()
-    MIN_THROUGHPUT_TIME = 'min. throughput time'.title()
-    MAX_THROUGHPUT_TIME = 'max. throughput time'.title()
-    AVG_TOTAL_SERVICE_TIME = 'avg. total service time'.title()
-    MED_TOTAL_SERVICE_TIME = 'med. total service time'.title()
-    MIN_TOTAL_SERVICE_TIME = 'min. total service time'.title()
-    MAX_TOTAL_SERVICE_TIME = 'max. total service time'.title()
+    ARC_FREQ = 'arc frequency'.title()
+    # AVG_WAITING_TIME = 'avg. waiting time'.title()
+    # MED_WAITING_TIME = 'med. waiting time'.title()
+    # MIN_WAITING_TIME = 'min. waiting time'.title()
+    # MAX_WAITING_TIME = 'max. waiting time'.title()
+    # STD_WAITING_TIME = 'std. waiting time'.title()
+    # AVG_SERVICE_TIME = 'avg. service time'.title()
+    # MED_SERVICE_TIME = 'med. service time'.title()
+    # MIN_SERVICE_TIME = 'min. service time'.title()
+    # MAX_SERVICE_TIME = 'max. service time'.title()
+    # STD_SERVICE_TIME = 'std. service time'.title()
+    # AVG_SOJOURN_TIME = 'avg. sojourn time'.title()
+    # MED_SOJOURN_TIME = 'med. sojourn time'.title()
+    # MIN_SOJOURN_TIME = 'min. sojourn time'.title()
+    # MAX_SOJOURN_TIME = 'max. sojourn time'.title()
+    # STD_SOJOURN_TIME = 'std. sojourn time'.title()
+    # AVG_SYNCHRO_TIME = 'avg. synchronization time'.title()
+    # MED_SYNCHRO_TIME = 'med. synchronization time'.title()
+    # MIN_SYNCHRO_TIME = 'min. synchronization time'.title()
+    # MAX_SYNCHRO_TIME = 'max. synchronization time'.title()
+    # STD_SYNCHRO_TIME = 'std. synchronization time'.title()
+    # AVG_POOLING_TIME = 'avg. pooling time'.title()
+    # MED_POOLING_TIME = 'med. pooling time'.title()
+    # MIN_POOLING_TIME = 'min. pooling time'.title()
+    # MAX_POOLING_TIME = 'max. pooling time'.title()
+    # STD_POOLING_TIME = 'std. pooling time'.title()
+    # AVG_LAGGING_TIME = 'avg. lagging time'.title()
+    # MED_LAGGING_TIME = 'med. lagging time'.title()
+    # MIN_LAGGING_TIME = 'min. lagging time'.title()
+    # MAX_LAGGING_TIME = 'max. lagging time'.title()
+    # STD_LAGGING_TIME = 'std. lagging time'.title()
+    # ACT_FREQ = 'activity frequency'.title()
+    # AVG_GROUP_SIZE = 'avg. group size'.title()
+    # MED_GROUP_SIZE = 'med. group size'.title()
+    # MIN_GROUP_SIZE = 'min. group size'.title()
+    # MAX_GROUP_SIZE = 'max. group size'.title()
+    # ARC_FREQ = 'arc frequency'.title()
 
 
 class AvailableConfObjImpact(Enum):
@@ -123,7 +147,7 @@ class AvailableFuncPerformanceMetric(Enum):
     MIN_WAITING_TIME = 'min. waiting time'.title()
     MAX_WAITING_TIME = 'max. waiting time'.title()
     ACT_FREQ = 'activity frequency'.title()
-    FLOW_FREQ = 'flow frequency'.title()
+    ARC_FREQ = 'flow frequency'.title()
 
 
 class AvailablePlaceDiagnostics(Enum):
@@ -153,7 +177,7 @@ class AvailableTransitionDiagnostics(Enum):
 
 
 class AvailableFlowDiagnostics(Enum):
-    FLOW_FREQ = 'flow frequency'.title()
+    ARC_FREQ = 'flow frequency'.title()
     AVG_SOJOURN_TIME = 'avg. sojourn time'.title()
     MED_SOJOURN_TIME = 'med. sojourn time'.title()
     MIN_SOJOURN_TIME = 'min. sojourn time'.title()
@@ -235,6 +259,7 @@ class AvailableTasks(Enum):
     EVALUATE = 'evaluate'
     STORE_CONFIG = 'store_config'
     SIMULATE = 'simulate'
+    OPERA = 'OPerA'
 
 
 class AvailableColorPalettes(Enum):

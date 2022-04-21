@@ -18,7 +18,7 @@ import dash_daq as daq
 
 
 def generate_deviation_form(detector, detector_helps):
-    return dbc.FormGroup(
+    return html.Div(
         [
             html.H2(
                 [
@@ -47,7 +47,7 @@ def generate_deviation_form(detector, detector_helps):
 
 
 def single_available_checklist(idx, title):
-    return dbc.FormGroup(dbc.Checklist(
+    return html.Div(dbc.Checklist(
         id=checklist_id_maker(extract_title(idx) + '-' + title),
         options=[{'label': '',
                   'value': 1}],
@@ -108,7 +108,7 @@ def generate_deviation_param_form(detector):
         return dbc.Collapse(
             dbc.Row([
                 dbc.Col(
-                    dbc.FormGroup(
+                    html.Div(
                         [
                             dbc.Label(param),
                             dbc.Input(placeholder=description[PLACEHOLDER_KEY],
@@ -228,7 +228,7 @@ def form_dropdown_row(data_attributes, attributes, multis, idx, persistence=Fals
         [
             dbc.Col(
                 [
-                    dbc.FormGroup(
+                    html.Div(
                         [
                             dbc.Label(attribute),
                             dropdown(data_attributes,

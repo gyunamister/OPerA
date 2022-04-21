@@ -66,7 +66,7 @@ from flask import request
 #     ]
 # )
 
-# # pattern_name_input = dbc.FormGroup(
+# # pattern_name_input = html.Div(
 # #     [
 # #         dbc.Label("Pattern Name", html_for="example-email"),
 # #         dcc.Input(id="pattern-specification",
@@ -78,7 +78,7 @@ from flask import request
 # #     ]
 # # )
 
-# action_input = dbc.FormGroup(
+# action_input = html.Div(
 #     [
 #         dbc.Label("Select condition", html_for="example-password"),
 #         dcc.Dropdown(id='condition-dropdown', multi=True),
@@ -88,7 +88,7 @@ from flask import request
 #     ]
 # )
 
-# condition_input = dbc.FormGroup(
+# condition_input = html.Div(
 #     [
 #         dbc.Label("Select action", html_for="example-password"),
 #         dcc.Dropdown(id='action-dropdown', multi=True),

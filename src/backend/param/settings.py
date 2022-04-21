@@ -8,7 +8,7 @@ entity_redis = os.getenv('REDIS_LOCALHOST_OR_DOCKER')
 entity_rabbit = os.getenv('RABBIT_LOCALHOST_OR_DOCKER')
 rabbit_user = os.getenv('RABBITMQ_USER')
 rabbit_pwd = os.getenv('RABBITMQ_PASSWORD')
-redis_pwd = 'apm191'
+redis_pwd = 'apm191!!'
 
 
 class CeleryConfig:

@@ -51,7 +51,7 @@ uploads = dbc.Row(
     ], justify='start'
 )
 
-bin_size_slider = dbc.FormGroup(
+bin_size_slider = html.Div(
     [
         dbc.Label("Select Bin Size", html_for="range-slider"),
         dcc.RangeSlider(id='bin-size-slider', max=0, min=-120, value=[-24, 0]),
@@ -59,7 +59,7 @@ bin_size_slider = dbc.FormGroup(
     ]
 )
 
-step_size_slider = dbc.FormGroup(
+step_size_slider = html.Div(
     [
         dbc.Label("Select Step Size", html_for="range-slider"),
         dcc.RangeSlider(id='step-size-slider', min=0, max=120, value=[0, 24]),

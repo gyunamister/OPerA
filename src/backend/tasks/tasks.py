@@ -10,15 +10,13 @@ from backend.param.constants import CSV, JOBS_KEY, JOB_TASKS_KEY
 from backend.param.settings import CeleryConfig, redis_pwd
 from celery import Celery
 from celery.result import AsyncResult
-from dtween.available.available import AvailableCorrelations
-from dtween.parsedata.objects.ocdata import ObjectCentricData, sort_events
-from dtween.parsedata.objects.oclog import ObjectCentricLog, Trace
 from dtween.digitaltwin.digitaltwin.objects.factory import get_digital_twin
-from dtween.digitaltwin.ocel.objects.mdl.importer import factory as mdl_import_factory
+from ocpa.objects.log.importer.mdl import factory as mdl_import_factory
 from ocpa.algo.discovery.ocpn import algorithm as discovery_factory
 from ocpa.algo.conformance.token_based_replay import algorithm as diagnostics_factory
 from ocpa.objects.log.obj import ObjectCentricEventLog
 from ocpa.objects.log.importer.ocel.versions import import_ocel_json
+from ocpa.algo.enhancement.token_replay_based_performance import algorithm as performance_factory
 import pickle
 import redis
 
@@ -40,7 +38,10 @@ def store_redis(data, task):
     db.set(key, pickled_object)
 
 
-db = redis.StrictRedis(host='localhost', port=6379, password=redis_pwd, db=0)
+redis_host = os.getenv('REDIS_LOCALHOST_OR_DOCKER')
+db = redis.StrictRedis(host=redis_host, port=6379, password=redis_pwd, db=0)
+
+# db = redis.StrictRedis(host='localhost', port=6379, password=redis_pwd, db=0)
 
 db.keys()
 celery = Celery('dtween.worker',
@@ -64,7 +65,6 @@ def parse_data(self, data, data_type, parse_param) -> ObjectCentricEventLog:
     if data_type == CSV:
         ocel = mdl_import_factory.apply(
             data, variant="to_obj", parameters=parse_param)
-        # print(ocel.raw.events)
         store_redis(ocel, self.request)
     else:
         store_redis(import_ocel_json.parse_json(
@@ -78,6 +78,19 @@ def build_digitaltwin(self, data):
 
     dt = get_digital_twin(ocpn)
     store_redis(dt, self.request)
+
+
+@celery.task(bind=True, serializer='pickle')
+def discover_ocpn(self, data):
+    ocpn = discovery_factory.apply(data)
+    store_redis(ocpn, self.request)
+
+
+@celery.task(bind=True, serializer='pickle')
+def analyze_opera(self, ocpn, data, parameters):
+    diagnostics = performance_factory.apply(
+        ocpn, data, parameters=parameters)
+    store_redis(diagnostics, self.request)
 
 
 @celery.task(bind=True, serializer='pickle')

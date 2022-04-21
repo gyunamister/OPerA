@@ -49,30 +49,9 @@ diagnostics_button_title = "show diagnostics".title()
 available_diagonstics = [e.value for e in AvailableDiagnostics]
 default_diagonstics = [e.value for e in DefaultDiagnostics]
 
-db = redis.StrictRedis(host='localhost', port=6379, password=redis_pwd, db=0)
-
 
 def results_key(task_id):
     return f'result-{task_id}'
-
-
-def store_redis(data, task):
-    key = results_key(task)
-    pickled_object = pickle.dumps(data)
-    db.set(key, pickled_object)
-
-
-def get_redis_data(user, task):
-    timeout = 0
-    key = results_key(task)
-    while not db.exists(key):
-        sleep(1)
-        timeout += 1
-        if timeout > CELERY_TIMEOUT:
-            return None
-        if task.failed():
-            return None
-    return pickle.loads(db.get(key))
 
 
 buttons = [
@@ -92,7 +71,7 @@ tab1_content = dbc.Row(
 
 )
 
-# diagnostics_input = dbc.FormGroup(
+# diagnostics_input = html.Div(
 #     [
 #         dbc.Label("Diagnostics"),
 #         dcc.Dropdown(id='diagnostics-dropdown'),
@@ -103,7 +82,7 @@ tab1_content = dbc.Row(
 #     ]
 # )
 
-# comparator_input = dbc.FormGroup(
+# comparator_input = html.Div(
 #     [
 #         dbc.Label("Comparator"),
 #         dcc.Dropdown(id='comp-operators-dropdown',
@@ -115,7 +94,7 @@ tab1_content = dbc.Row(
 #     ]
 # )
 
-# threshold_input = dbc.FormGroup(
+# threshold_input = html.Div(
 #     [
 #         dbc.Label("Threshold"),
 #         html.Br(),
@@ -128,7 +107,7 @@ tab1_content = dbc.Row(
 #     ]
 # )
 
-# name_input = dbc.FormGroup(
+# name_input = html.Div(
 #     [
 #         dbc.Label("Name"),
 #         html.Br(),

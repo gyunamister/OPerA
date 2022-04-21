@@ -1,8 +1,12 @@
 import hashlib
 import base64
+import datetime
 from datetime import date
 import re
-import time
+import sqlite3
+import json
+
+import subprocess
 
 from backend.components.misc import container, single_row, button, show_title_maker, show_button_id, global_signal_id_maker, temp_jobs_store_id_maker, global_form_load_signal_id_maker
 import dash_interactive_graphviz
@@ -11,197 +15,157 @@ import dash_html_components as html
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 from backend.app import app
-import pandas as pd
+import dash_table
 import dash
-from backend.param.constants import DESIGN_TITLE, PERF_ANALYSIS_TITLE, GLOBAL_FORM_SIGNAL, PERF_ANALYSIS_URL, PARSE_TITLE
-from dtween.util.util import PERF_METRIC_NAME_MAP, AGG_NAME_MAP
-from dtween.available.constants import COMP_OPERATORS
+from backend.param.constants import PARSE_TITLE, DESIGN_TITLE, GLOBAL_FORM_SIGNAL, PERF_ANALYSIS_URL, PERF_ANALYSIS_TITLE
 
-from ocpa.visualization.oc_petri_net import factory as ocpn_vis_factory
-from backend.util import add_job, run_task, forget_all_tasks, get_job_id, check_existing_job, read_global_signal_value, read_active_attribute_form, write_global_signal_value, no_update
-from backend.tasks.tasks import get_remote_data
-from dtween.available.available import AvailableTasks, AvailablePerformanceMetric, AvailableAggregators
-from ocpa.objects.log.converter.versions import jsonocel_to_mdl as ocel_to_mdl_factory
-import dash_core_components as dcc
-from ocpa.objects.oc_petri_net.obj import Subprocess
 
-from dateutil import parser
+from dtween.util.util import DIAGNOSTICS_NAME_MAP, PERFORMANCE_AGGREGATION_NAME_MAP
+
+from backend import time_utils
+
+from backend.util import run_task, read_global_signal_value, no_update, transform_config_to_datatable_dict
+from backend.tasks.tasks import get_remote_data, analyze_opera
+from dtween.available.available import AvailableTasks, AvailableDiagnostics, DefaultDiagnostics, AvailablePerformanceAggregation
 from flask import request
-
-from ocpa.algo.projection.ocpn import algorithm as ocpn_project_factory
-from ocpa.algo.filtering.graph.event_graph import algorithm as event_graph_filtering_factory
-from ocpa.algo.enhancement.event_graph_based_performance import algorithm as performance_factory
-from ocpa.objects.graph.event_graph.retrieval import algorithm as event_graph_factory
-from ocpa.objects.graph.correlated_event_graph.retrieval import algorithm as correlated_event_graph_factory
-from ocpa.algo.enhancement.event_graph_based_performance import algorithm as performance_factory
+from dateutil import parser
+from ocpa.visualization.oc_petri_net import factory as ocpn_vis_factory
+from ocpa.objects.log.converter import factory as ocel_converter_factory
 
 import pickle
 import redis
 from time import sleep
-from backend.param.settings import CeleryConfig, redis_pwd
-
-CELERY_TIMEOUT = 21600
-
-proj_ocpn_id = "current-projected-ocpn"
-original_cegs_id = "current-original-cegs"
-filtered_cegs_id = "current-filtered-cegs"
-subprocess_id = "current-subprocess"
+from backend.param.settings import redis_pwd
 
 
-db = redis.StrictRedis(host='localhost', port=6379, password=redis_pwd, db=0)
+refresh_title = "Refresh".title()
+diagnostics_button_title = "compute".title()
+
+available_diagonstics = [e.value for e in AvailableDiagnostics]
+available_aggregations = [e.value for e in AvailablePerformanceAggregation]
+default_diagonstics = [e.value for e in DefaultDiagnostics]
 
 
 def results_key(task_id):
     return f'result-{task_id}'
 
 
-def store_redis(data, task):
-    key = results_key(task)
-    pickled_object = pickle.dumps(data)
-    db.set(key, pickled_object)
-
-
-def get_redis_data(user, task):
-    timeout = 0
-    key = results_key(task)
-    while not db.exists(key):
-        sleep(1)
-        timeout += 1
-        if timeout > CELERY_TIMEOUT:
-            return None
-        if task.failed():
-            return None
-    return pickle.loads(db.get(key))
-
-
-initial_ocpn_buttion_title = "show model".title()
-projection_button_title = "project model".title()
-build_button_title = "build event graph".title()
-clear_button_title = "clear".title()
-compute_button_title = "compute".title()
-
 buttons = [
-    button(initial_ocpn_buttion_title, show_title_maker, show_button_id),
-    button(projection_button_title, show_title_maker, show_button_id),
-    button(build_button_title, show_title_maker, show_button_id)
+    button(refresh_title, show_title_maker, show_button_id),
 ]
 
+tab1_content = dbc.Row(
+    [
+        dbc.Col(html.Div(id="selected-marking"), width=12),
+        dbc.Col(html.Div(id='object-list'), width=12),
+        dbc.Col(dash_table.DataTable(
+            id='object-table',
+            fixed_columns={'headers': True, 'data': 1},
+            style_table={'minWidth': '100%'}
+        ), width=12)
+    ]
+
+)
+
 diagnostics_date_picker = html.Div([
-    dcc.Store(id='perf-analysis-start', storage_type='session', data=""),
-    dcc.Store(id='perf-analysis-end', storage_type='session', data=""),
-    dcc.Store(id='perf-analysis-duration', storage_type='session'),
-    dcc.Store(id='perf-analysis-list', storage_type='session'),
-    dbc.Label("Time Period"),
-    html.Br(),
+    dcc.Store(id='diagnostics-start', storage_type='session', data=""),
+    dcc.Store(id='diagnostics-end', storage_type='session', data=""),
+    dcc.Store(id='diagnostics-duration', storage_type='session'),
+    dcc.Store(id='diagnostics-list', storage_type='session'),
+    html.H3('Object-Centric Performance Measures'),
+    dbc.Checklist(
+        id='diagnostics-checklist',
+        options=[{'label': d, 'value': d} for d in available_diagonstics],
+        value=[d for d in default_diagonstics],
+        inline=True,
+        switch=True
+    ),
+    html.Hr(),
+    html.H3('Aggregations'),
+    dbc.Checklist(
+        id='aggregation-checklist',
+        options=[{'label': d, 'value': d} for d in available_aggregations],
+        value=[d for d in available_aggregations],
+        inline=True,
+        switch=True
+    ),
+    html.Hr(),
+    html.H3('Time Period'),
+    html.Div(id='output-container-date-picker-range'),
     dcc.DatePickerRange(
-        id='perf-analysis-date-picker-range',
+        id='my-date-picker-range',
         min_date_allowed=date(1995, 8, 5),
         max_date_allowed=date(2017, 9, 19),
         initial_visible_month=date(2017, 8, 5),
         end_date=date(2017, 8, 25),
         display_format='YYYY-MM-DD',
     ),
-    dbc.FormText(
-        html.Div(id='perf-analysis-output-container-date-picker-range'),
-        color="secondary",
-    ),
+    html.Hr(),
+    dbc.Col(html.Div(id="selected-marking"), width=12),
 ])
 
-diagnostics_input = dbc.FormGroup(
+diagnostics_tab_content = dbc.Row(
+    dbc.Col(
+        [
+            diagnostics_date_picker,
+            button(diagnostics_button_title, show_title_maker, show_button_id)
+        ]
+    )
+)
+
+tabs = dbc.Tabs(
     [
-        dbc.Label("Object-centric Performance Metric"),
-        dcc.Dropdown(id='performance-metrics-dropdown', options=[
-                     {'label': x, 'value': x} for x in [e.value for e in AvailablePerformanceMetric]]),
-        dbc.FormText(
-            "Select a performance metric of your interest",
-            color="secondary",
-        ),
+        # dbc.Tab(tab1_content, label="State"),
+        dbc.Tab(diagnostics_tab_content, label="Diagnostics"),
     ]
 )
 
-aggregator_input = dbc.FormGroup(
-    [
-        dbc.Label("Aggregation"),
-        dcc.Dropdown(id='aggregator-dropdown',
-                     options=[{'label': x, 'value': x} for x in [e.value for e in AvailableAggregators]]),
-        dbc.FormText(
-            "Select a type of aggregation",
-            color="secondary",
-        ),
-    ]
+display = html.Div(
+    id="perf-display",
+    className="number-plate",
+    children=[]
 )
 
-object_projection_input = dbc.FormGroup(
+operational_view_content = dbc.Row(
     [
-        dbc.Label("Select object types", html_for="example-password"),
-        dcc.Dropdown(id='object-proj-dropdown', multi=True),
-        dbc.FormText(
-            "You can select multiple conditions.", color="secondary"
-        ),
-    ]
-)
-
-subprocess_projection_input = dbc.FormGroup(
-    [
-        dbc.Label("Select activities", html_for="example-password"),
-        dcc.Dropdown(id='subprocess-proj-dropdown', multi=True),
-        dbc.FormText(
-            "You can select multiple actions.", color="secondary"
-        ),
-    ]
-)
-
-ocpn_projection_panel = dbc.Row(
-    [
-        dbc.Col(object_projection_input),
-        dbc.Col(subprocess_projection_input),
-    ]
-)
-
-perf_analysis_content = dbc.Row(
-    [
-        dcc.Store(id='ocpn-perf-analysis-dot',
+        dcc.Store(id='ocpn-operational-view-dot',
                   storage_type='session', data=""),
-        dcc.Store(id='projected-ocpn-dot', storage_type='session', data=""),
+        dcc.Store(id='object-types', storage_type='session', data=[]),
         dbc.Col(
-            dash_interactive_graphviz.DashInteractiveGraphviz(id="perf-analysis-gv"), width=8
+            dash_interactive_graphviz.DashInteractiveGraphviz(
+                id="gv-operational-view"), width=6
         ),
         dbc.Col(
-            [
-                html.H3("Performance Analysis"),
-                html.Hr(),
-                diagnostics_date_picker,
-                html.Hr(),
-                diagnostics_input,
-                aggregator_input,
-                html.Hr(),
-                button(compute_button_title,
-                       show_title_maker, show_button_id),
-                html.Br(),
-                dbc.Alert(children="", id="performance-output",
-                          is_open=False, color="success"),
-            ],
-            width=4
-        ),
+            display, width=6
+        )
+        # dbc.Col(
+        #     [
+        #         html.Div(id='current-timestamp'),
+        #         tabs
+        #     ], width=6
+        # )
     ],
-    style=dict(position="absolute", height="100%",
-               width="100%", display="flex"),
+    # style=dict(position="absolute", height="100%",
+    #            width="100%", display="flex"),
+    style={'height': '100vh'}
 )
 
 page_layout = container('Object-Centric Performance Analysis',
                         [
                             single_row(html.Div(buttons)),
-                            ocpn_projection_panel,
-                            perf_analysis_content
+                            html.Hr(),
+                            diagnostics_tab_content,
+                            html.Hr(),
+                            operational_view_content
                         ]
                         )
 
 
-@ app.callback(
-    Output("perf-analysis-gv", "dot_source"),
-    Output("perf-analysis-gv", "engine"),
+@app.callback(
+    Output("gv-operational-view", "dot_source"),
+    Output("gv-operational-view", "engine"),
     Input('url', 'pathname'),
-    Input("ocpn-perf-analysis-dot", "data")
+    Input("ocpn-operational-view-dot", "data")
 )
 def show_ocpn(pathname, value):
     if pathname == PERF_ANALYSIS_URL and value is not None:
@@ -210,161 +174,273 @@ def show_ocpn(pathname, value):
 
 
 @app.callback(
-    Output("perf-analysis-date-picker-range", "min_date_allowed"),
-    Output("perf-analysis-date-picker-range", "max_date_allowed"),
-    Output("perf-analysis-date-picker-range", "initial_visible_month"),
-    Output("perf-analysis-date-picker-range", "start_date"),
-    Output("perf-analysis-date-picker-range", "end_date"),
-    Input('url', 'pathname'),
+    Output(temp_jobs_store_id_maker(PERF_ANALYSIS_TITLE), 'data'),
+    Output('ocpn-operational-view-dot', 'data'),
+    Output('object-types', 'data'),
+    Output("my-date-picker-range", "min_date_allowed"),
+    Output("my-date-picker-range", "max_date_allowed"),
+    Output("my-date-picker-range", "initial_visible_month"),
+    Output("my-date-picker-range", "start_date"),
+    Output("my-date-picker-range", "end_date"),
+    Input(show_button_id(refresh_title), 'n_clicks'),
+    Input(show_button_id(diagnostics_button_title), 'n_clicks'),
     State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
-    State(global_signal_id_maker(PARSE_TITLE), 'children'),
-    State(temp_jobs_store_id_maker(PARSE_TITLE), 'data'),
-)
-def initialize_date(pathname, value, old_value, data_jobs):
-    if pathname == PERF_ANALYSIS_URL and (value is not None or old_value is not None):
-        if value is None:
-            value = old_value
-        log_hash, date = read_global_signal_value(value)
-        user = request.authorization['username']
-        data = get_remote_data(user, log_hash, data_jobs,
-                               AvailableTasks.PARSE.value)
-        eve_df, obj_df = ocel_to_mdl_factory.apply(data)
-        min_date = min(eve_df['event_timestamp']).to_pydatetime().date()
-        max_date = max(eve_df['event_timestamp']).to_pydatetime().date()
-        return min_date, max_date, max_date, min_date, max_date
-    return no_update(5)
-
-
-@app.callback(
-    Output('ocpn-perf-analysis-dot', 'data'),
-    Output("object-proj-dropdown", "options"),
-    Output("subprocess-proj-dropdown", "options"),
-    Output('subprocess-proj-dropdown', 'value'),
-    Input(show_button_id(initial_ocpn_buttion_title), 'n_clicks'),
-    Input(show_button_id(projection_button_title), 'n_clicks'),
-    Input(show_button_id(build_button_title), 'n_clicks'),
-    Input("perf-analysis-gv", "selected_node"),
-    Input("perf-analysis-gv", "selected_edge"),
-    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
-    State(global_signal_id_maker(PARSE_TITLE), 'children'),
     State(temp_jobs_store_id_maker(PARSE_TITLE), 'data'),
     State(temp_jobs_store_id_maker(DESIGN_TITLE), 'data'),
-    State('object-proj-dropdown', 'value'),
-    State('subprocess-proj-dropdown', 'value'),
+    State(temp_jobs_store_id_maker(PERF_ANALYSIS_TITLE), 'data'),
+    State('diagnostics-start', 'data'),
+    State('diagnostics-end', 'data'),
+    State('diagnostics-checklist', 'value'),
+    State('aggregation-checklist', 'value'),
 )
-def load_initial_ocpn(n_show_orig_ocpn, n_show_proj_ocpn, n_build_eg, selected_node, selected_edge, value, old_value, data_jobs, control_jobs, object_proj_values, subprocess_proj_values):
+def load_ocpn(n_load, n_diagnosis, value, data_jobs, design_jobs, perf_jobs, start_date, end_date, diagnostics_list, aggregation_list):
     ctx = dash.callback_context
     if not ctx.triggered:
-        click_id = 'No clicks yet'
-        click_value = None
+        button_id = 'No clicks yet'
     else:
-        click_id = ctx.triggered[0]['prop_id'].split('.')[0]
-        click_value = ctx.triggered[0]['value']
-        if value is None:
-            value = old_value
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        button_value = ctx.triggered[0]['value']
 
-    if click_value is not None:
-        if click_id == show_button_id(initial_ocpn_buttion_title):
-            log_hash, date = read_global_signal_value(value)
-            user = request.authorization['username']
-            ocpn = get_remote_data(user, log_hash, control_jobs,
-                                   AvailableTasks.DESIGN.value)
+    if button_id == show_button_id(refresh_title):
+        user = request.authorization['username']
+        log_hash, date = read_global_signal_value(value)
+        data = get_remote_data(user, log_hash, data_jobs,
+                               AvailableTasks.PARSE.value)
+        eve_df, obj_df = ocel_converter_factory.apply(data)
+        min_date = min(eve_df['event_timestamp']).to_pydatetime().date()
+        max_date = max(eve_df['event_timestamp']).to_pydatetime().date()
+        return dash.no_update, dash.no_update, dash.no_update, min_date, max_date, max_date, min_date, max_date
 
-            object_types = ocpn.object_types
-            ot_options = [{'label': ot,
-                           'value': ot} for ot in object_types]
-            transition_labels = [t.name for t in ocpn.transitions]
-            act_options = [{'label': act,
-                            'value': act} for act in transition_labels]
+    elif button_id == show_button_id(diagnostics_button_title):
+        user = request.authorization['username']
+        log_hash, date = read_global_signal_value(value)
+        data = get_remote_data(user, log_hash, data_jobs,
+                               AvailableTasks.PARSE.value)
+        eve_df, obj_df = ocel_converter_factory.apply(data)
+        # +1 day to consider the selected end date
+        start_date = parser.parse(start_date).date()
+        end_date = parser.parse(end_date).date()
+        end_date += datetime.timedelta(days=1)
 
-            parameters = dict()
-            parameters['format'] = 'svg'
-            gviz = ocpn_vis_factory.apply(
-                ocpn, variant="control_flow", parameters=parameters)
-            ocpn_diagnostics_dot = str(gviz)
+        ocpn = get_remote_data(user, log_hash, design_jobs,
+                               AvailableTasks.DESIGN.value)
 
-            # TODO store ocpn
-            # store_redis(cegs, filtered_task_id)
+        object_types = ocpn.object_types
+        # task_id = run_task(
+        #     design_jobs, log_hash, AvailableTasks.DIAGNIZE.value, generate_diagnostics, ocpn=ocpn, data=eve_df, start_date=start_date, end_date=end_date)
+        # diagnostics = get_remote_data(user, log_hash, design_jobs,
+        #                               AvailableTasks.DIAGNIZE.value)
+        diag_params = dict()
+        diag_params['measures'] = [DIAGNOSTICS_NAME_MAP[d]
+                                   for d in diagnostics_list]
+        diag_params['agg'] = [PERFORMANCE_AGGREGATION_NAME_MAP[a]
+                              for a in aggregation_list]
 
-            return ocpn_diagnostics_dot, ot_options, act_options, dash.no_update
+        task_id = run_task(
+            design_jobs, log_hash, AvailableTasks.OPERA.value, analyze_opera, ocpn=ocpn, data=eve_df, parameters=diag_params)
+        diagnostics = get_remote_data(user, log_hash, design_jobs,
+                                      AvailableTasks.OPERA.value)
 
-        if click_id == show_button_id(build_button_title):
-            log_hash, date = read_global_signal_value(value)
-            user = request.authorization['username']
+        # diagnostics = performance_factory.apply(
+        #     ocpn, eve_df, parameters=diag_params)
 
-            data = get_remote_data(user, log_hash, data_jobs,
-                                   AvailableTasks.PARSE.value)
-            print("Start building EG")
-            st = time.time()
-            eg = event_graph_factory.apply(data)
-            et = time.time()
-            print("End building EG: {}".format(et-st))
-            print("Start building CEGs")
-            st2 = time.time()
-            cegs = correlated_event_graph_factory.apply(eg)
-            et2 = time.time()
-            print("End building CEGs: {}".format(et2-st2))
-            store_redis(cegs, original_cegs_id)
-            return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        diag_params['format'] = 'svg'
 
-        elif click_id == show_button_id(projection_button_title):
-            log_hash, date = read_global_signal_value(value)
-            user = request.authorization['username']
-            ocpn = get_remote_data(user, log_hash, control_jobs,
-                                   AvailableTasks.DESIGN.value)
-            sp = Subprocess(ocpn, object_proj_values, subprocess_proj_values)
-            store_redis(sp, subprocess_id)
+        gviz = ocpn_vis_factory.apply(
+            ocpn, diagnostics=diagnostics, variant="annotated_with_opera", parameters=diag_params)
+        ocpn_diagnostics_dot = str(gviz)
+        return design_jobs, ocpn_diagnostics_dot, object_types, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
-            print("Start projection: {} and {}".format(
-                ocpn.object_types, ocpn.transitions))
-            st = time.time()
-            if sp.object_types != None and len(sp.object_types) != 0:
-                ot_proj_parameters = dict()
-                ot_proj_parameters['selected_object_types'] = list(
-                    sp.object_types)
-                temp_proj_ocpn = ocpn_project_factory.apply(
-                    ocpn, variant="object_types", parameters=ot_proj_parameters)
-            else:
-                temp_proj_ocpn = ocpn
-
-            if sp.transitions != None and len(sp.transitions) != 0:
-                sp_proj_parameters = dict()
-                sp_proj_parameters['selected_transitions'] = sp.transitions
-                temp_proj_ocpn = ocpn_project_factory.apply(
-                    temp_proj_ocpn, variant="hiding", parameters=sp_proj_parameters)
-            et = time.time()
-            print("End projection: {}".format(et-st))
-
-            proj_ocpn = temp_proj_ocpn
-            store_redis(proj_ocpn, proj_ocpn_id)
-
-            vis_parameters = dict()
-            vis_parameters['format'] = 'svg'
-            proj_gviz = ocpn_vis_factory.apply(
-                proj_ocpn, variant="control_flow", parameters=vis_parameters)
-            proj_ocpn_dot = str(proj_gviz)
-            return proj_ocpn_dot, dash.no_update, dash.no_update, dash.no_update
-        # selecting transitions by clicking the visualization
-        elif click_id == "perf-analysis-gv":
-            tr_label = click_value
-            if subprocess_proj_values is None:
-                subprocess_proj_values = [tr_label]
-            else:
-                if tr_label not in subprocess_proj_values:
-                    subprocess_proj_values.append(tr_label)
-            return dash.no_update, dash.no_update, dash.no_update, subprocess_proj_values
-    return no_update(4)
+    return no_update(8)
 
 
 @app.callback(
-    Output('perf-analysis-output-container-date-picker-range', 'children'),
-    Output('perf-analysis-start', 'data'),
-    Output('perf-analysis-end', 'data'),
-    Input('perf-analysis-date-picker-range', 'start_date'),
-    Input('perf-analysis-date-picker-range', 'end_date')
+    Output("perf-display", "children"),
+    Input("gv-operational-view", "selected_node"),
+    State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
+    State(temp_jobs_store_id_maker(PERF_ANALYSIS_TITLE), 'data'),
 )
-def select_date(start_date, end_date):
-    string_prefix = 'You have selected: '
+def show_selected(selected, value, perf_jobs):
+    if selected is not None:
+        # selected_tokens = [[pl, oi]
+        #                    for pl, oi in tokens if str(value) == str(pl)]
+        log_hash, date = read_global_signal_value(value)
+        user = request.authorization['username']
+        if '(t)' in selected:
+            selected = selected.replace('(t)', '')
+        elif ('p') in selected:
+            return dash.no_update
+        diagnostics = get_remote_data(user, log_hash, perf_jobs,
+                                      AvailableTasks.OPERA.value)
+        selected_diag = diagnostics[selected]
+
+        def create_1d_plate(title, value):
+            return html.Div(
+                className='number-plate-single',
+                style={'border-top': '#292929 solid .2rem', },
+                children=[
+                    html.H5(
+                        style={'color': '#292929', },
+                        children=title
+                    ),
+                    html.H3(
+                        style={'color': '#292929'},
+                        children=[
+                            '{}'.format(value),
+                            html.P(
+                                style={'color': '#ffffff', },
+                                children='xxxx xx xxx xxxx xxx xxxxx'
+                            ),
+                        ]
+                    ),
+                ]
+            )
+
+        def create_2d_plate(title, diag):
+            num_plates = len(diag.keys())
+            plate_width = (100 / num_plates) - 1
+
+            def create_number_plate(plate_width, name, val):
+                return html.Div(  # small block upper most
+                    className='number-plate-single',
+                    children=[
+                        html.H3(f'{name}'),
+                        html.H3('{}'.format(val))
+                    ], style={'width': f'{plate_width}%', 'display': 'inline-block'})
+
+            plates = []
+            for agg in diag:
+                plates.append(create_number_plate(plate_width, agg, diag[agg]))
+
+            return html.Div(
+                className='number-plate-single',
+                style={'border-top': '#292929 solid .2rem', },
+                children=[
+                    html.H5(
+                        style={'color': '#292929', },
+                        children=title
+                    ),
+                    html.Div(
+                        style={'color': '#292929'},
+                        children=plates
+                    ),
+                ]
+            )
+
+        def create_3d_plate(title, diag):
+
+            def create_number_plate(plate_width, name, val):
+                return html.Div(  # small block upper most
+                    className='number-plate-single',
+                    children=[
+                        html.H3(f'{name}'),
+                        html.H3('{}'.format(val))
+                    ], style={'width': f'{plate_width}%', 'display': 'inline-block'})
+
+            first_plates = []
+            for ot in diag:
+                second_plates = []
+                num_plates = len(diag[ot].keys())
+                plate_width = (100 / num_plates) - 1
+                for agg in diag[ot]:
+                    second_plates.append(create_number_plate(
+                        plate_width, agg, diag[ot][agg]))
+                first_plate = html.Div(
+                    className='number-plate-single',
+                    style={'border-top': '#292929 solid .2rem', },
+                    children=[
+                        html.H5(
+                            style={'color': '#292929', },
+                            children=ot
+                        ),
+                        html.Div(
+                            style={'color': '#292929'},
+                            children=second_plates
+                        ),
+                    ]
+                )
+                first_plates.append(first_plate)
+
+            return html.Div(
+                className='number-plate-single',
+                style={'border-top': '#292929 solid .2rem', },
+                children=[
+                    html.H5(
+                        style={'color': '#292929', },
+                        children=title
+                    ),
+                    html.Div(
+                        style={'color': '#292929'},
+                        children=first_plates
+                    ),
+                ]
+            )
+
+        plate_frames = [html.H3(f"Performance @ {selected}")]
+        if 'group_size_hist' in selected_diag:
+            plate_frames.append(create_2d_plate(
+                'Number of objects', selected_diag['group_size_hist']))
+            plate_frames.append(html.Br())
+
+        if 'waiting_time' in selected_diag:
+            plate_frames.append(create_2d_plate(
+                'Waiting Time', selected_diag['waiting_time']))
+            plate_frames.append(html.Br())
+
+        if 'service_time' in selected_diag:
+            plate_frames.append(create_2d_plate(
+                'Service Time', selected_diag['service_time']))
+            plate_frames.append(html.Br())
+
+        if 'sojourn_time' in selected_diag:
+            plate_frames.append(create_2d_plate(
+                'Sojourn Time', selected_diag['sojourn_time']))
+            plate_frames.append(html.Br())
+
+        if 'synchronization_time' in selected_diag:
+            plate_frames.append(create_2d_plate(
+                'Synchronization Time', selected_diag['synchronization_time']))
+            plate_frames.append(html.Br())
+
+        if 'lagging_time' in selected_diag:
+            plate_frames.append(create_3d_plate(
+                'Lagging Time', selected_diag['lagging_time']))
+            plate_frames.append(html.Br())
+
+        if 'pooling_time' in selected_diag:
+            plate_frames.append(create_3d_plate(
+                'Pooling Time', selected_diag['pooling_time']))
+            plate_frames.append(html.Br())
+
+        if 'flow_time' in selected_diag:
+            plate_frames.append(create_2d_plate(
+                'Flow Time', selected_diag['flow_time']))
+            plate_frames.append(html.Br())
+        return plate_frames
+
+    else:
+        return dash.no_update
+
+
+def awrite(writer, data):
+    writer.write(data)
+    # await writer.drain()
+    writer.flush()
+
+
+def group_item(name, index):
+    return dbc.ListGroupItem(name, id={"type": "object-item", "index": index}, n_clicks=0, action=True)
+
+
+@ app.callback(
+    Output('output-container-date-picker-range', 'children'),
+    Output('diagnostics-start', 'data'),
+    Output('diagnostics-end', 'data'),
+    Input('my-date-picker-range', 'start_date'),
+    Input('my-date-picker-range', 'end_date')
+)
+def update_output(start_date, end_date):
+    string_prefix = ''
     start_date_string = ""
     end_date_string = ""
     if start_date is not None:
@@ -381,41 +457,3 @@ def select_date(start_date, end_date):
         return 'Select a date to see it displayed here', start_date_string, end_date_string
     else:
         return string_prefix, start_date_string, end_date_string
-
-
-@app.callback(
-    Output('performance-output', 'children'),
-    Output('performance-output', 'is_open'),
-    Input(show_button_id(compute_button_title), 'n_clicks'),
-    State('performance-metrics-dropdown', 'value'),
-    State('aggregator-dropdown', 'value'),
-    State('perf-analysis-start', 'data'),
-    State('perf-analysis-end', 'data'),
-)
-def update_output(n, perf_metric_name, agg_name, start_date, end_date):
-    if n is not None:
-        perf_metric = PERF_METRIC_NAME_MAP[perf_metric_name]
-        agg = AGG_NAME_MAP[agg_name]
-        duration = parser.parse(end_date) - parser.parse(start_date)
-        days, seconds = duration.days, duration.seconds
-        hours = days * 24 + seconds // 3600
-        print("Start performance analysis: {} and {}".format(perf_metric, agg))
-
-        st = time.time()
-        user = request.authorization['username']
-        sp = get_redis_data(user, subprocess_id)
-        proj_ocpn = get_redis_data(user, proj_ocpn_id)
-        original_cegs = get_redis_data(user, original_cegs_id)
-
-        perf_parameters = dict()
-        perf_parameters['perf_metric'] = perf_metric
-        perf_parameters['agg'] = agg
-        perf_parameters['subprocess'] = sp
-        result = performance_factory.apply(
-            proj_ocpn, original_cegs, parameters=perf_parameters)
-        et = time.time()
-        print("End performance analysis: {}".format(et-st))
-
-        return "Result: %s" % (result), True
-    else:
-        return "undefined", False

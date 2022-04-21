@@ -65,7 +65,7 @@ diagnostics_date_picker = html.Div([
     html.Hr(),
 ])
 
-diagnostics_input = dbc.FormGroup(
+diagnostics_input = html.Div(
     [
         dbc.Label("Diagnostics"),
         dcc.Dropdown(id='diagnostics-dropdown'),
@@ -76,7 +76,7 @@ diagnostics_input = dbc.FormGroup(
     ]
 )
 
-comparator_input = dbc.FormGroup(
+comparator_input = html.Div(
     [
         dbc.Label("Comparator"),
         dcc.Dropdown(id='comp-operators-dropdown',
@@ -88,7 +88,7 @@ comparator_input = dbc.FormGroup(
     ]
 )
 
-threshold_input = dbc.FormGroup(
+threshold_input = html.Div(
     [
         dbc.Label("Threshold"),
         html.Br(),
@@ -101,7 +101,7 @@ threshold_input = dbc.FormGroup(
     ]
 )
 
-name_input = dbc.FormGroup(
+name_input = html.Div(
     [
         dbc.Label("Name"),
         html.Br(),

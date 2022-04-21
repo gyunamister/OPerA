@@ -1,0 +1,62 @@
+version: "3.4"
+
+services:
+  redis:
+    env_file:
+      - ".env"
+    image: "redis:latest"
+    hostname: redis
+    command: redis-server --requirepass apm191!! --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - dtweenweb
+
+  web:
+    build:
+      context: "."
+      dockerfile: Dockerfile
+      args:
+        - "FLASK_ENV=${FLASK_ENV:-production}"
+    working_dir: "/home/dtween/backend"
+    command: "python index.py"
+    depends_on:
+      - "redis"
+    env_file:
+      - ".env"
+    healthcheck:
+      interval: "60s"
+      timeout: "3s"
+      start_period: "5s"
+      retries: 3
+    ports:
+      - "8050:8050"
+    volumes:
+      - "${DOCKER_WEB_VOLUME:-./public:/app/public}"
+    networks:
+      - dtweenweb
+
+  worker:
+    build:
+      context: "."
+      args:
+        - "FLASK_IN_DOCKER=redis"
+    working_dir: "/home/dtween/backend/tasks"
+    command: "celery -A tasks worker --loglevel=INFO --uid dtweenworker"
+    depends_on:
+      - "redis"
+    env_file:
+      - ".env"
+    stop_grace_period: "${DOCKER_STOP_GRACE_PERIOD:-3s}"
+    volumes:
+      - "${DOCKER_WEB_VOLUME:-./public:/app/public:/code/anomalydetection}"
+    networks:
+      - dtweenweb
+
+volumes:
+  redis-data:
+
+networks:
+  dtweenweb:

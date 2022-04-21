@@ -71,10 +71,11 @@ venv.bak/
 # analysis
 /src/evaluation
 /src/infosystem
-/src/infosystem/logs
-/src/infosystem/database
+/src/sim
 
 /build
 /dist
 /dtween.egg-info
 /deprecated
+
+/setup.py

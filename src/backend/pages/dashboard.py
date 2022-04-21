@@ -81,33 +81,8 @@ def get_proc():
 
 sim_process_id = "current-sim-process"
 
-db = redis.StrictRedis(host='localhost', port=6379, password=redis_pwd, db=0)
 
-
-def results_key(task_id):
-    return f'result-{task_id}'
-
-
-def store_redis(data, task):
-    key = results_key(task)
-    pickled_object = pickle.dumps(data)
-    db.set(key, pickled_object)
-
-
-def get_redis_data(user, task):
-    timeout = 0
-    key = results_key(task)
-    while not db.exists(key):
-        sleep(1)
-        timeout += 1
-        if timeout > CELERY_TIMEOUT:
-            return None
-        if task.failed():
-            return None
-    return pickle.loads(db.get(key))
-
-
-step_size_slider = dbc.FormGroup(
+step_size_slider = html.Div(
     [
         dbc.Label("Select Simulation Step Size", html_for="slider"),
         dcc.Slider(id='step-size-slider', min=0, max=120, value=24),
@@ -115,7 +90,7 @@ step_size_slider = dbc.FormGroup(
     ]
 )
 
-num_step_slider = dbc.FormGroup(
+num_step_slider = html.Div(
     [
         dbc.Label("Select Number of Steps", html_for="slider"),
         dcc.Slider(id='num-step-slider', min=0, max=365, value=100),
@@ -123,7 +98,7 @@ num_step_slider = dbc.FormGroup(
     ]
 )
 
-action_input = dbc.FormGroup(
+action_input = html.Div(
     [
         dbc.Label("Select action", html_for="example-password"),
         dcc.Dropdown(id='action-dropdown', multi=False),
@@ -137,7 +112,7 @@ manual_action_instance = dbc.Row(
     [
         dbc.Col(action_input, width=2),
         dbc.Col(
-            dbc.FormGroup(
+            html.Div(
                 [
                     dbc.Label("Select Action Range", html_for="range-slider"),
                     dcc.RangeSlider(id='action-time-slider',

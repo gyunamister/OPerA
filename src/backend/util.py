@@ -169,6 +169,8 @@ def read_corr_form_dict(d):
 def guarantee_list_input(data):
     if not isinstance(data, list):
         data = [data]
+    if '' in data:
+        data.remove('')
     return data
 
 
@@ -206,14 +208,11 @@ def read_active_attribute_form(children):
 
 
 def build_csv_param(activity, objects, timestamp, values, start_timestamp):
-    vmap_params = {}
-
     csv_param = {
         "obj_names": objects,
         "val_names": values,
         "time_name": timestamp,
         "act_name": activity,
-        "vmap_params": vmap_params,
         "start_time": start_timestamp
     }
     return csv_param

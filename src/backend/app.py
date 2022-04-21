@@ -15,10 +15,11 @@ external_stylesheets = [
 entity = os.getenv('LOCALHOST_OR_DOCKER')
 
 app = dash.Dash(__name__,
+                assets_folder='./assets/',
                 external_stylesheets=external_stylesheets,
                 meta_tags=[{'name': 'viewport',
                             'content': 'width=device-width, initial-scale=1'}]
                 )
 app.config.suppress_callback_exceptions = True
 app.server.secret_key = os.environ.get('SECRET_KEY')
-app.title = 'Dtween'
+app.title = 'Opera'

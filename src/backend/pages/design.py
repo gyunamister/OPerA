@@ -3,13 +3,12 @@ from backend.param.settings import CeleryConfig, redis_pwd
 from time import sleep
 import redis
 import pickle
-from dtween.digitaltwin.ocel.objects.ocel.converter import factory as ocel_converter_factory
-from dtween.parsedata.objects.ocdata import ObjectCentricData
+from ocpa.objects.log.converter import factory as ocel_converter_factory
 from dtween.available.available import AvailableTasks
-from backend.tasks.tasks import get_remote_data, build_digitaltwin, store_redis_backend
+from backend.tasks.tasks import get_remote_data, discover_ocpn, store_redis_backend
 from backend.util import run_task, read_global_signal_value, no_update, parse_contents, transform_to_valves, transform_to_writes, transform_to_activity_variants
 
-from dtween.digitaltwin.digitaltwin.visualization import visualizer as dt_vis_factory
+from ocpa.visualization.oc_petri_net import factory as ocpn_vis_factory
 import hashlib
 import base64
 
@@ -40,53 +39,23 @@ apply_activity_variant_title = "Apply Activity Variants"
 apply_configuration_title = "Set default configuration"
 connect_db_title = "Connect to Information System"
 
-CELERY_TIMEOUT = 21600
-
-
-db = redis.StrictRedis(host='localhost', port=6379, password=redis_pwd, db=0)
-
-
-def results_key(task_id):
-    return f'result-{task_id}'
-
-
-def store_redis(data, task):
-    key = results_key(task)
-    pickled_object = pickle.dumps(data)
-    db.set(key, pickled_object)
-
-
-def get_redis_data(user, task):
-    timeout = 0
-    key = results_key(task)
-    while not db.exists(key):
-        sleep(1)
-        timeout += 1
-        if timeout > CELERY_TIMEOUT:
-            return None
-        if task.failed():
-            return None
-    return pickle.loads(db.get(key))
-
 
 buttons = dbc.Row(
     [
         dbc.Col(button(discover_title, show_title_maker,
                 show_button_id), width='auto'),
-        dbc.Col(dcc.Upload(id="upload-valve",
-                children=button(upload_valve_title, show_title_maker, show_button_id)), width='auto'),
-        dbc.Col(dcc.Upload(id="upload-guard",
-                children=button(upload_guard_title, show_title_maker, show_button_id)), width='auto'),
-        # dbc.Col(dcc.Upload(id="upload-write",
-        #         children=button(upload_write_title, show_title_maker, show_button_id)), width='auto'),
-        dbc.Col(dcc.Upload(id="upload-activity-variant",
-                children=button(upload_activity_variant_title, show_title_maker, show_button_id)), width='auto'),
-        dbc.Col(dcc.Upload(id="upload-system-config",
-                children=button(connect_db_title, show_title_maker, show_button_id)), width='auto'),
+        # dbc.Col(dcc.Upload(id="upload-valve",
+        #         children=button(upload_valve_title, show_title_maker, show_button_id)), width='auto'),
+        # dbc.Col(dcc.Upload(id="upload-guard",
+        #         children=button(upload_guard_title, show_title_maker, show_button_id)), width='auto'),
+        # dbc.Col(dcc.Upload(id="upload-activity-variant",
+        #         children=button(upload_activity_variant_title, show_title_maker, show_button_id)), width='auto'),
+        # dbc.Col(dcc.Upload(id="upload-system-config",
+        #         children=button(connect_db_title, show_title_maker, show_button_id)), width='auto'),
     ], justify='start', className="g-0",
 )
 
-guards_form = dbc.FormGroup(
+guards_form = html.Div(
     [
         dbc.Label("Guards"),
         dash_table.DataTable(
@@ -110,7 +79,7 @@ guards_form = dbc.FormGroup(
     ]
 )
 
-valves_form = dbc.FormGroup(
+valves_form = html.Div(
     [
         dbc.Label("Valves"),
         dash_table.DataTable(
@@ -133,7 +102,7 @@ valves_form = dbc.FormGroup(
     ]
 )
 
-# writes_form = dbc.FormGroup(
+# writes_form = html.Div(
 #     [
 #         dbc.Label("Writes"),
 #         dash_table.DataTable(
@@ -156,7 +125,7 @@ valves_form = dbc.FormGroup(
 #     ]
 # )
 
-activity_variants_form = dbc.FormGroup(
+activity_variants_form = html.Div(
     [
         dbc.Label("Activity Variant"),
         dash_table.DataTable(
@@ -181,7 +150,6 @@ activity_variants_form = dbc.FormGroup(
 
 design_content = dbc.Row(
     [
-        dcc.Store(id='guard-store', storage_type='session'),
         dcc.Store(id='ocpn-dot', storage_type='session', data=""),
         dcc.ConfirmDialog(
             id='confirm-guard-update',
@@ -190,24 +158,21 @@ design_content = dbc.Row(
         dbc.Col(
             dash_interactive_graphviz.DashInteractiveGraphviz(id="gv"), width=6
         ),
-        dbc.Col(
-            [
-                valves_form,
-                guards_form,
-                # writes_form,
-                activity_variants_form
-            ],
-            width=6
-        ),
+        # dbc.Col(
+        #     [
+        #         valves_form,
+        #         guards_form,
+        #         activity_variants_form
+        #     ],
+        #     width=6
+        # ),
 
     ],
-    # style=dict(position="absolute", height="100%",
-    #            width="100%", display="flex"),
     justify='center',
     style={"height": "100vh"},
 )
 
-page_layout = container('Design Digital Twin Interface Model',
+page_layout = container('Discover Object-Centric Petri Nets',
                         [
                             buttons,
                             design_content
@@ -239,28 +204,16 @@ def show_selected(value):
     Output(temp_jobs_store_id_maker(DESIGN_TITLE), 'data'),
     Output('ocpn-dot', 'data'),
     Input(show_button_id(discover_title), 'n_clicks'),
-    Input(show_button_id(apply_guard_title), 'n_clicks'),
-    Input(show_button_id(apply_valve_title), 'n_clicks'),
-    # Input(show_button_id(apply_write_title), 'n_clicks'),
-    Input(show_button_id(apply_activity_variant_title), 'n_clicks'),
-    State('guard-table', 'data'),
-    State('valve-table', 'data'),
-    # State('write-table', 'data'),
-    State('activity-variant-table', 'data'),
     State(global_form_load_signal_id_maker(GLOBAL_FORM_SIGNAL), 'children'),
-    State(temp_jobs_store_id_maker(PARSE_TITLE), 'data'),
-    State(temp_jobs_store_id_maker(DESIGN_TITLE), 'data'),
-    prevent_initial_call=True
+    State(temp_jobs_store_id_maker(PARSE_TITLE), 'data')
 )
-def run_build_digitaltwin(n_discover, n_guard, n_valve, n_variant, guard_data, valve_data, activity_variant_data, value, data_jobs, design_jobs):
+def run_discover_ocpn(n_discover, value, data_jobs):
     ctx = dash.callback_context
     if not ctx.triggered:
         button_id = 'No clicks yet'
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
         button_value = ctx.triggered[0]['value']
-        # if value is None:
-        #     value = old_value
 
     if button_value is not None:
         if button_id == show_button_id(discover_title):
@@ -268,63 +221,15 @@ def run_build_digitaltwin(n_discover, n_guard, n_valve, n_variant, guard_data, v
             user = request.authorization['username']
             data = get_remote_data(user, log_hash, data_jobs,
                                    AvailableTasks.PARSE.value)
-
-            eve_df, obj_df = ocel_converter_factory.apply(data)
+            eve_df, obj_df = ocel_converter_factory.apply(
+                data, variant='json_to_mdl')
             task_id = run_task(
-                data_jobs, log_hash, AvailableTasks.DESIGN.value, build_digitaltwin, data=eve_df)
-            dt = get_remote_data(user, log_hash, data_jobs,
-                                 AvailableTasks.DESIGN.value)
-            gviz = dt_vis_factory.apply(dt, parameters={"format": "svg"})
-            dt_dot = str(gviz)
-            return data_jobs, dt_dot
-
-        elif button_id == show_button_id(apply_valve_title):
-            log_hash, date = read_global_signal_value(value)
-            user = request.authorization['username']
-            valves = transform_to_valves(valve_data)
-            dt = get_remote_data(user, log_hash, design_jobs,
-                                 AvailableTasks.DESIGN.value)
-            dt.valves = valves
-            task_id = run_task(
-                design_jobs, log_hash, AvailableTasks.DESIGN.value, store_redis_backend, data=dt)
-            return design_jobs, dash.no_update
-
-        elif button_id == show_button_id(apply_guard_title):
-            log_hash, date = read_global_signal_value(value)
-            user = request.authorization['username']
-            dt = get_remote_data(user, log_hash, design_jobs,
-                                 AvailableTasks.DESIGN.value)
-            for record in guard_data:
-                dt.add_guard(record[TRANSITION], record[GUARD])
-            task_id = run_task(
-                design_jobs, log_hash, AvailableTasks.DESIGN.value, store_redis_backend, data=dt)
-            gviz = dt_vis_factory.apply(dt, parameters={"format": "svg"})
-            dt_dot = str(gviz)
-            return design_jobs, dt_dot
-
-        # elif button_id == show_button_id(apply_write_title):
-        #     log_hash, date = read_global_signal_value(value)
-        #     user = request.authorization['username']
-        #     writes = transform_to_writes(write_data)
-        #     dt = get_remote_data(user, log_hash, design_jobs,
-        #                          AvailableTasks.DESIGN.value)
-        #     dt.writes = writes
-        #     task_id = run_task(
-        #         design_jobs, log_hash, AvailableTasks.DESIGN.value, store_redis_backend, data=dt)
-        #     return design_jobs, dash.no_update
-
-        elif button_id == show_button_id(apply_activity_variant_title):
-            log_hash, date = read_global_signal_value(value)
-            user = request.authorization['username']
-            activity_variants = transform_to_activity_variants(
-                activity_variant_data)
-            dt = get_remote_data(user, log_hash, design_jobs,
-                                 AvailableTasks.DESIGN.value)
-            dt.activity_variants = activity_variants
-            task_id = run_task(
-                design_jobs, log_hash, AvailableTasks.DESIGN.value, store_redis_backend, data=dt)
-            return design_jobs, dash.no_update
-
+                data_jobs, log_hash, AvailableTasks.DESIGN.value, discover_ocpn, data=eve_df)
+            ocpn = get_remote_data(user, log_hash, data_jobs,
+                                   AvailableTasks.DESIGN.value)
+            gviz = ocpn_vis_factory.apply(ocpn, parameters={"format": "svg"})
+            ocpn_dot = str(gviz)
+            return data_jobs, ocpn_dot
     return no_update(2)
 
 

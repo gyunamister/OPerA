@@ -75,7 +75,8 @@ class ModelingAssumptions:
     @staticmethod
     def default(activities, resources):
         return ModelingAssumptions(
-            {a: ActivityAssumptions(RelativeFractionalGuess(0.0), AbsoluteQuantileGuess(0.2)) for a in activities},
+            {a: ActivityAssumptions(RelativeFractionalGuess(
+                0.0), AbsoluteQuantileGuess(0.2)) for a in activities},
             # TODO be any more arbitrary, will ya?
             {r: ResourceAssumptions() for r in resources}, 1.0)
 
@@ -89,12 +90,15 @@ def fractional_guess(totals, r):
 
 
 def absolute_clipped_totals(activity_measurements, absolute_guess):
-    normal = np.random.normal(loc=absolute_guess.total_seconds(), size=len(activity_measurements))
-    presumed_start = activity_measurements['completed'] - pd.to_timedelta(normal.clip(min=0), unit='seconds')
+    normal = np.random.normal(
+        loc=absolute_guess.total_seconds(), size=len(activity_measurements))
+    presumed_start = activity_measurements['completed'] - \
+        pd.to_timedelta(normal.clip(min=0), unit='seconds')
     clipped_totals = activity_measurements['completed'] - activity_measurements['enabled'].mask(
         activity_measurements.enabled > presumed_start, presumed_start)
     clipped_totals = clipped_totals.dt.total_seconds()
-    sum__fillna = clipped_totals.groupby(activity_measurements['resource']).sum().fillna(0)
+    sum__fillna = clipped_totals.groupby(
+        activity_measurements['resource']).sum().fillna(0)
     return pd.to_timedelta(sum__fillna, unit='seconds')
 
 
@@ -104,7 +108,8 @@ def normalize_total_assignment_durations(original_totals, original_timespan, ori
 
 
 def binary_search(v):
-    return np.floor(v / 2), np.floor((.5 + v) / 2) # TODO max quantile to check should be median (50%). Not valid for relative fractional
+    # TODO max quantile to check should be median (50%). Not valid for relative fractional
+    return np.floor(v / 2), np.floor((.5 + v) / 2)
 
 
 def linear_search(step=.1):
@@ -121,8 +126,9 @@ def equidistant_matrix(size):
 
 
 def call_pyemd(s1, s2):
-    return pyemd.emd(s1.to_numpy(copy=True, dtype=np.float), s2.to_numpy(copy=True, dtype=np.float),
-                     equidistant_matrix(len(s1)))
+    # return pyemd.emd(s1.to_numpy(copy=True, dtype=np.float), s2.to_numpy(copy=True, dtype=np.float),
+    #                  equidistant_matrix(len(s1)))
+    return 0
 
 
 class ModelingAssumptionsIterator:
@@ -130,7 +136,8 @@ class ModelingAssumptionsIterator:
     def __init__(self, original_measurements_df: pd.DataFrame,
                  initial_modeling_assumptions: ModelingAssumptions) -> None:
         self.original_measurements_df = original_measurements_df
-        self.activities = set(initial_modeling_assumptions.activity_assumptions)
+        self.activities = set(
+            initial_modeling_assumptions.activity_assumptions)
         self.resources = set(initial_modeling_assumptions.resource_assumptions)
         self.past_modeling_assumptions = {initial_modeling_assumptions}
         self.current_modeling_assumptions = initial_modeling_assumptions
@@ -169,11 +176,13 @@ class ModelingAssumptionsIterator:
             processing = pd.Timedelta(0)
             if isinstance(g, AbsoluteQuantileGuess):
                 processing = pd.to_timedelta(
-                    max(0, np.random.normal(loc=cached_processing_guesses[activity].total_seconds())),
+                    max(0, np.random.normal(
+                        loc=cached_processing_guesses[activity].total_seconds())),
                     unit='seconds')
             elif isinstance(g, RelativeFractionalGuess):
                 processing = fractional_guess(total_duration, g.fraction)
-            start_time = max(time_utils.subtract(complete_time, processing), schedule_time)
+            start_time = max(time_utils.subtract(
+                complete_time, processing), schedule_time)
             return schedule_time, start_time
 
         return guess
@@ -210,16 +219,22 @@ class ModelingAssumptionsIterator:
             new_guess = AbsoluteQuantileGuess(new_v) if isinstance(guess,
                                                                    AbsoluteQuantileGuess) else RelativeFractionalGuess(
                 new_v)
-            activity_assumptions = dict(self.current_modeling_assumptions.activity_assumptions)
-            activity_assumptions[a] = ActivityAssumptions(activity_assumptions[a].delay_guess, new_guess)
+            activity_assumptions = dict(
+                self.current_modeling_assumptions.activity_assumptions)
+            activity_assumptions[a] = ActivityAssumptions(
+                activity_assumptions[a].delay_guess, new_guess)
             modeling_assumptions = ModelingAssumptions(activity_assumptions,
-                                                       dict(self.current_modeling_assumptions.resource_assumptions),
+                                                       dict(
+                                                           self.current_modeling_assumptions.resource_assumptions),
                                                        self.current_modeling_assumptions.load_factor)
-            if modeling_assumptions not in self.past_modeling_assumptions: # could be optimized by checking actual derived(cached) guesses if quantile values are duplicates
-                print(f'*****Changing {a} {v:.3f} to {new_v:.3f} ({m1:.2f}<={m2:.2f}? {l:.3f} : {h:.3f}) with {f_name} (z={z:.3f})')
+            # could be optimized by checking actual derived(cached) guesses if quantile values are duplicates
+            if modeling_assumptions not in self.past_modeling_assumptions:
+                print(
+                    f'*****Changing {a} {v:.3f} to {new_v:.3f} ({m1:.2f}<={m2:.2f}? {l:.3f} : {h:.3f}) with {f_name} (z={z:.3f})')
                 new_assumptions = modeling_assumptions
             else:
-                print(f'*****Failed Changing {a} {v:.3f} to {new_v:.3f} ({m1:.2f}<={m2:.2f}? {l:.3f} : {h:.3f}) with {f_name} (z={z:.3f})')
+                print(
+                    f'*****Failed Changing {a} {v:.3f} to {new_v:.3f} ({m1:.2f}<={m2:.2f}? {l:.3f} : {h:.3f}) with {f_name} (z={z:.3f})')
 
             i += 1
 

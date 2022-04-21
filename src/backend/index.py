@@ -12,11 +12,11 @@ from backend.components.misc import global_signal_id_maker, temp_jobs_store_id_m
 from backend.pages.about import page_layout as about_layout
 from backend.pages.design import page_layout as design_layout
 from backend.pages.perf_analysis import page_layout as perfanalysis_layout
-from backend.pages.diagnostics_view import page_layout as diagnosticsview_layout
-from backend.pages.control_view import page_layout as control_view_layout
-from backend.pages.operational_view import page_layout as operational_view_layout
-from backend.pages.dashboard import page_layout as dashboard_layout
-from backend.pages.action_pattern import page_layout as pattern_layout
+# from backend.pages.diagnostics_view import page_layout as diagnosticsview_layout
+# from backend.pages.control_view import page_layout as control_view_layout
+# from backend.pages.operational_view import page_layout as operational_view_layout
+# from backend.pages.dashboard import page_layout as dashboard_layout
+# from backend.pages.action_pattern import page_layout as pattern_layout
 from backend.pages.home import page_layout as home_layout
 from backend.param.constants import DEFAULT_JOBS, ABOUT_URL, \
     DEFAULT_FORM, STORES_SIGNALS, FORMS, TRACE_SIGNAL, MULTI_PAGE_URLS, \
@@ -40,6 +40,7 @@ app.layout = html.Div([
     dcc.Store(id='last-job', storage_type='session'),
     dcc.Store(id='jobs-store', storage_type='session', data=DEFAULT_JOBS),
     dcc.Store(id='valve-store', storage_type='session'),
+    dcc.Store(id='guard-store', storage_type='session'),
     dcc.Store(id='write-store', storage_type='session'),
     dcc.Store(id='activity-variant-store', storage_type='session'),
     dcc.Store(id='action-definition', storage_type='session', data={}),
@@ -94,18 +95,18 @@ def display_page(pathname):
         return about_layout
     elif pathname == DESIGN_URL:
         return design_layout
-    elif pathname == CVIEW_URL:
-        return control_view_layout
-    elif pathname == OVIEW_URL:
-        return operational_view_layout
-    elif pathname == DVIEW_URL:
-        return diagnosticsview_layout
+    # elif pathname == CVIEW_URL:
+    #     return control_view_layout
+    # elif pathname == OVIEW_URL:
+    #     return operational_view_layout
+    # elif pathname == DVIEW_URL:
+    #     return diagnosticsview_layout
     elif pathname == PERF_ANALYSIS_URL:
         return perfanalysis_layout
-    elif pathname == DASHBOARD_URL:
-        return dashboard_layout
-    elif pathname == PATTERN_URL:
-        return pattern_layout
+    # elif pathname == DASHBOARD_URL:
+    #     return dashboard_layout
+    # elif pathname == PATTERN_URL:
+    #     return pattern_layout
     else:
         return home_layout
 
@@ -167,13 +168,13 @@ if __name__ == '__main__':
     if localhost_or_docker == 'localhost':
         app.run_server(
             debug=debug,
-            port=8051,
+            port=8050,
             dev_tools_hot_reload=False, use_reloader=False
         )
     else:
         app.run_server(
             host='0.0.0.0',
             debug=debug,
-            port=8051,
+            port=8050,
             dev_tools_hot_reload=True, use_reloader=False
         )
