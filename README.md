@@ -1,4 +1,4 @@
-# Tool manual - OPerA
+# OPerA
 
 *OperA* is an interactive tool implementing object-centric performance analysis. 
 It supports:
@@ -14,7 +14,7 @@ It supports:
 # Demo Video
 [![OperA DEMO VIDEO](resources/images/demo-video.png)](https://youtu.be/Se1vZSD9gxY "OPerA DEMO VIDEO")
 
-## Deployment
+# Deployment
 
 ### Automatic
 For automatic and platform-independent deployment, simply execute the following commands:
