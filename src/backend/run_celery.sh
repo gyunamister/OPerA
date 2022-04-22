@@ -1,6 +1,6 @@
-export DTWEEN_PATH="/Users/gyunam/Documents/DigitalTwin/"
+# export OPERA_PATH="/Users/gyunam/Documents/DigitalTwin/"
 # export OCPA_PATH="/Users/gyunam/Documents/ocpa-core"
-dtween_path=$DTWEEN_PATH
+dtween_path=$OPERA_PATH
 # ocpa_path=$OCPA_PATH
 
 export PYTHONPATH="${dtween_path}/src/:${ocpa_path}:$PYTHONPATH"

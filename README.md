@@ -2,52 +2,30 @@
 
 *OperA* is an interactive tool implementing object-centric performance analysis. 
 It supports:
-- Importing of object-centric event logs in different formats including OCEL JSON, OCEL XML, and CSV.
-- Discovering object-centric Petri nets based on Inductive Miner Directly-Follows process discovery algorithm.
-- Visualizing object-centric Petri nets to define different analysis views and analyze the performance.
-- Projecting object-centric Petri nets based on analysis views.
-- Filtering object-centric event logs based on analysis views. 
-- Computing various performance measures.
+- Importing object-centric event logs in different formats including OCEL JSON, OCEL XML, and CSV.
+- Discovering Object-Centric Petri Nets (OCPNs) based on the general approach (van der Aalst and Berti, 2020) Inductive Miner Directly-Follows process discovery algorithm (Leemans, 2018).
+    - van der Aalst, W.M.P., Berti, A.: Discovering object-centric Petri nets. Fundam.Informaticae 175(1-4), 1–40 (2020)
+    - Leemans, S.J.J., Fahland, D., van der Aalst, W.M.P.: Scalable process discovery and conformance checking. Softw. Syst. Model. 17(2), 599–631 (2018)
+- Replaying tokens with timestamps on OCPNs based on the token-based replay approach (Berti and van der Aalst, 2021).
+    - Berti, A., van der Aalst, W.M.P.: A novel token-based replay technique to speed up conformance checking and process enhancement. Trans. Petri Nets Other Model. Concurr. 15, 1–26 (2021)
+- Computing object-centric performance measures based on the replay results, i.e., event occurrences and token visits.
+- Visualizing OCPNs with the object-centric performance measure.
 
-
-
-# Functionalities
-
-## 1. Importing
-
-### 1.1. Input and output
-
-![resources/images/Untitled%201.png](resources/images/p1.png)
-
-1. Import OCEL JSON or CSV files
-2. Select attributes
-3. Preview the data and parse it
-
-## 2. Discovering object-centric Petri nets
-
-![resources/images/Untitled%202.png](resources/images/p2.png)
-
-1. Discover an OCPN
-
-## 3. Projecting object-centric Petri nets
-
-![resources/images/Untitled%208.png](resources/images/p3.png)
-
-1. Show the discovered OCPN
-2. Define an analysis view (By clicking transitions, you can add activities.)
-3. Project the discoverd OCPN on the analysis view
-
-## 4. Computing performance measures
-
-![resources/images/Untitled%208.png](resources/images/p4.png)
-
-1. Build event object graphs 
-2. Select time period
-3. Select performance metric
-4. Select aggregation 
-5. Compute performance measure 
+# Demo Video
+[![OperA DEMO VIDEO](resources/images/demo-video.png)](https://youtu.be/Se1vZSD9gxY "OPerA DEMO VIDEO")
 
 ## Deployment
+
+### Automatic
+For automatic and platform-independent deployment, simply execute the following commands:
+```shell script
+git clone https://github.com/gyunamister/OPerA.git
+cd src/
+docker-compose up
+```
+After installations, the web service is available at *127.0.0.1/8050*. 
+The default username is *admin*, and the default password is *test123* for logging into the system.
+If you would like the Dash web service to run in debug mode, then change the value of the environment variable **DEBUG_MODE** in the [env file](src/.env) to **true**.
 
 ### Manual
 
@@ -66,7 +44,6 @@ In the second shell:
 ```bash
 export OPERA_PATH=<path_to_your_project_root> # the directory where src/ is located
 cd src/backend
-chmod +x ./run_celery.sh
 ./run_celery.sh
 ```
 
@@ -78,7 +55,7 @@ set REDIS_LOCALHOST_OR_DOCKER=localhost
 set RABBIT_LOCALHOST_OR_DOCKER=localhost
 set RABBITMQ_USER=opera
 set RABBITMQ_PASSWORD=opera92! 
-cd src/server/backend/tasks
+cd src/backend/tasks
 celery -A tasks worker --loglevel=INFO -P eventlet
 ```
 
@@ -87,12 +64,7 @@ In the third shell:
 ```bash
 export OPERA_PATH=<path_to_your_project_root> # the directory where src/ is located
 cd src/backend
-chmod +x ./run_opera.sh
 ./run_opera.sh
 ```
 
 The default username is admin, and the default password is test123 for logging into the system available at 127.0.0.1/8050.
-
-### Automatic
-
-TBD
