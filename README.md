@@ -27,6 +27,8 @@ After installations, the web service is available at *127.0.0.1/8050*.
 The default username is *admin*, and the default password is *test123* for logging into the system.
 If you would like the Dash web service to run in debug mode, then change the value of the environment variable **DEBUG_MODE** in the [env file](src/.env) to **true**.
 
+Example logs are available at [examples](examples/).
+
 ### Manual
 
 Please make sure to install the binaries of [Graphviz](https://graphviz.org/) and [Python 3.8.8](https://www.python.org/downloads/release/python-383/) before you proceed. In the following, shell scripts are developed for the zsh, so if you use a different shell, then you need to modify the scripts accordingly.
