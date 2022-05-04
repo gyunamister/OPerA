@@ -213,15 +213,15 @@ def build_csv_param(activity, objects, timestamp, values, start_timestamp):
         "val_names": values,
         "time_name": timestamp,
         "act_name": activity,
-        "start_time": start_timestamp
+        "start_timestamp": start_timestamp
     }
     return csv_param
 
 
-def build_json_param(start_time):
+def build_json_param(start_timestamp):
     vmap_params = {}
-    if start_time != NA:
-        vmap_params[START_TIMESTAMP] = start_time
+    if start_timestamp != NA:
+        vmap_params[START_TIMESTAMP] = start_timestamp
     json_param = JsonParseParameters(
         vmap_params=vmap_params
     )
