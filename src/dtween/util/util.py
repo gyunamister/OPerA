@@ -71,8 +71,20 @@ DIAGNOSTICS_NAME_MAP = {
     'lagging time'.title(): 'lagging_time',
     'flow time'.title(): 'flow_time',
     'activity frequency'.title(): 'act_freq',
-    'object count'.title(): 'group_size',
+    'object count'.title(): 'object_count',
     'arc frequency'.title(): 'arc_freq'
+}
+
+DIAGNOSTICS_VIS_NAME_MAP = {
+    'object_count': 'object count'.title(),
+    'waiting_time': 'waiting time'.title(),
+    'service_time': 'service time'.title(),
+    'sojourn_time': 'sojourn time'.title(),
+    'synchronization_time': 'synchronization time'.title(),
+    'pooling_time': 'pooling time'.title(),
+    'lagging_time': 'lagging time'.title(),
+    'flow_time': 'flow time'.title(),
+
 }
 
 PERFORMANCE_AGGREGATION_NAME_MAP = {
