@@ -87,9 +87,9 @@ def discover_ocpn(self, data):
 
 
 @celery.task(bind=True, serializer='pickle')
-def analyze_opera(self, ocpn, data, parameters):
+def analyze_opera(self, ocpn, ocel, parameters):
     diagnostics = performance_factory.apply(
-        ocpn, data, parameters=parameters)
+        ocpn, ocel, parameters=parameters)
     store_redis(diagnostics, self.request)
 
 

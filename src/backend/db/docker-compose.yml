@@ -3,7 +3,7 @@ version: '3'
 services:
   redis:
     image: redis:latest
-    command: redis-server --requirepass apm191 --appendonly yes
+    command: redis-server --requirepass apm191!! --appendonly yes
     volumes:
       - redis-data:/data
     ports:

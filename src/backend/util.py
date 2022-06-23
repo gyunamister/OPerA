@@ -15,8 +15,8 @@ from ocpa.objects.log.util.param import JsonParseParameters
 from dtween.available.constants import INTERVALS, TRANSITION, GUARD
 from typing import List, Set
 from dtween.digitaltwin.digitaltwin.control.obj import NumericalValve, WriteOperation, ActivityVariant
-from ocpa.objects.oc_petri_net.obj import ObjectCentricPetriNet
 from typing import List, Dict
+from ocpa.util.vis_util import human_readable_stat
 
 
 def add_job(data_format, date, jobs, log_hash, name):
@@ -323,3 +323,103 @@ def transform_config_to_datatable_dict(config):
         temp_dict['value'] = config[valve]
         datatable_dict.append(temp_dict)
     return datatable_dict
+
+
+def create_performance_measure_plate(plate_width, name, val, time_measure):
+    if time_measure:
+        val = human_readable_stat(val)
+    return html.Div(  # small block upper most
+        className='number-plate-single',
+        children=[
+            html.H3(f'{name}'),
+            html.H3('{}'.format(val))
+        ], style={'width': f'{plate_width}%', 'display': 'inline-block'})
+
+
+def create_1d_plate(title, value):
+    return html.Div(
+        className='number-plate-single',
+        style={'border-top': '#292929 solid .2rem', },
+        children=[
+            html.H5(
+                style={'color': '#292929', },
+                children=title
+            ),
+            html.H3(
+                style={'color': '#292929'},
+                children=[
+                    '{}'.format(value),
+                    html.P(
+                        style={'color': '#ffffff', },
+                        children='xxxx xx xxx xxxx xxx xxxxx'
+                    ),
+                ]
+            ),
+        ]
+    )
+
+
+def create_2d_plate(title, diag, time_measure):
+    num_plates = len(diag.keys())
+    plate_width = (100 / num_plates) - 1
+
+    plates = []
+    for agg in diag:
+        plates.append(create_performance_measure_plate(
+            plate_width, agg, diag[agg], time_measure))
+
+    return html.Div(
+        className='number-plate-single',
+        style={'border-top': '#292929 solid .2rem', },
+        children=[
+            html.H5(
+                style={'color': '#292929', },
+                children=title
+            ),
+            html.Div(
+                style={'color': '#292929'},
+                children=plates
+            ),
+        ]
+    )
+
+
+def create_3d_plate(title, diag, time_measure):
+    first_plates = []
+    for ot in diag:
+        second_plates = []
+        num_plates = len(diag[ot].keys())
+        plate_width = (100 / num_plates) - 1
+        for agg in diag[ot]:
+            second_plates.append(create_performance_measure_plate(
+                plate_width, agg, diag[ot][agg], time_measure))
+        first_plate = html.Div(
+            className='number-plate-single',
+            style={'border-top': '#292929 solid .2rem', },
+            children=[
+                html.H5(
+                    style={'color': '#292929', },
+                    children=ot
+                ),
+                html.Div(
+                    style={'color': '#292929'},
+                    children=second_plates
+                ),
+            ]
+        )
+        first_plates.append(first_plate)
+
+    return html.Div(
+        className='number-plate-single',
+        style={'border-top': '#292929 solid .2rem', },
+        children=[
+            html.H5(
+                style={'color': '#292929', },
+                children=title
+            ),
+            html.Div(
+                style={'color': '#292929'},
+                children=first_plates
+            ),
+        ]
+    )

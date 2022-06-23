@@ -5,7 +5,7 @@ from datetime import date
 import re
 import sqlite3
 import json
-
+from ocpa.util.vis_util import human_readable_stat
 import subprocess
 
 from backend.components.misc import container, single_row, button, show_title_maker, show_button_id, global_signal_id_maker, temp_jobs_store_id_maker, global_form_load_signal_id_maker
@@ -20,11 +20,11 @@ import dash
 from backend.param.constants import PARSE_TITLE, DESIGN_TITLE, GLOBAL_FORM_SIGNAL, PERF_ANALYSIS_URL, PERF_ANALYSIS_TITLE
 
 
-from dtween.util.util import DIAGNOSTICS_NAME_MAP, PERFORMANCE_AGGREGATION_NAME_MAP
+from dtween.util.util import DIAGNOSTICS_NAME_MAP, PERFORMANCE_AGGREGATION_NAME_MAP, DIAGNOSTICS_VIS_NAME_MAP
 
 from backend import time_utils
 
-from backend.util import run_task, read_global_signal_value, no_update, transform_config_to_datatable_dict
+from backend.util import run_task, read_global_signal_value, no_update, transform_config_to_datatable_dict, create_3d_plate, create_2d_plate
 from backend.tasks.tasks import get_remote_data, analyze_opera
 from dtween.available.available import AvailableTasks, AvailableDiagnostics, DefaultDiagnostics, AvailablePerformanceAggregation
 from flask import request
@@ -214,9 +214,9 @@ def load_ocpn(n_load, n_diagnosis, value, data_jobs, design_jobs, perf_jobs, sta
     elif button_id == show_button_id(diagnostics_button_title):
         user = request.authorization['username']
         log_hash, date = read_global_signal_value(value)
-        data = get_remote_data(user, log_hash, data_jobs,
+        ocel = get_remote_data(user, log_hash, data_jobs,
                                AvailableTasks.PARSE.value)
-        eve_df, obj_df = ocel_converter_factory.apply(data)
+        # eve_df, obj_df = ocel_converter_factory.apply(data)
         # +1 day to consider the selected end date
         start_date = parser.parse(start_date).date()
         end_date = parser.parse(end_date).date()
@@ -237,7 +237,7 @@ def load_ocpn(n_load, n_diagnosis, value, data_jobs, design_jobs, perf_jobs, sta
                               for a in aggregation_list]
 
         task_id = run_task(
-            design_jobs, log_hash, AvailableTasks.OPERA.value, analyze_opera, ocpn=ocpn, data=eve_df, parameters=diag_params)
+            design_jobs, log_hash, AvailableTasks.OPERA.value, analyze_opera, ocpn=ocpn, ocel=ocel, parameters=diag_params)
         diagnostics = get_remote_data(user, log_hash, design_jobs,
                                       AvailableTasks.OPERA.value)
 
@@ -274,148 +274,56 @@ def show_selected(selected, value, perf_jobs):
                                       AvailableTasks.OPERA.value)
         selected_diag = diagnostics[selected]
 
-        def create_1d_plate(title, value):
-            return html.Div(
-                className='number-plate-single',
-                style={'border-top': '#292929 solid .2rem', },
-                children=[
-                    html.H5(
-                        style={'color': '#292929', },
-                        children=title
-                    ),
-                    html.H3(
-                        style={'color': '#292929'},
-                        children=[
-                            '{}'.format(value),
-                            html.P(
-                                style={'color': '#ffffff', },
-                                children='xxxx xx xxx xxxx xxx xxxxx'
-                            ),
-                        ]
-                    ),
-                ]
-            )
-
-        def create_2d_plate(title, diag):
-            num_plates = len(diag.keys())
-            plate_width = (100 / num_plates) - 1
-
-            def create_number_plate(plate_width, name, val):
-                return html.Div(  # small block upper most
-                    className='number-plate-single',
-                    children=[
-                        html.H3(f'{name}'),
-                        html.H3('{}'.format(val))
-                    ], style={'width': f'{plate_width}%', 'display': 'inline-block'})
-
-            plates = []
-            for agg in diag:
-                plates.append(create_number_plate(plate_width, agg, diag[agg]))
-
-            return html.Div(
-                className='number-plate-single',
-                style={'border-top': '#292929 solid .2rem', },
-                children=[
-                    html.H5(
-                        style={'color': '#292929', },
-                        children=title
-                    ),
-                    html.Div(
-                        style={'color': '#292929'},
-                        children=plates
-                    ),
-                ]
-            )
-
-        def create_3d_plate(title, diag):
-
-            def create_number_plate(plate_width, name, val):
-                return html.Div(  # small block upper most
-                    className='number-plate-single',
-                    children=[
-                        html.H3(f'{name}'),
-                        html.H3('{}'.format(val))
-                    ], style={'width': f'{plate_width}%', 'display': 'inline-block'})
-
-            first_plates = []
-            for ot in diag:
-                second_plates = []
-                num_plates = len(diag[ot].keys())
-                plate_width = (100 / num_plates) - 1
-                for agg in diag[ot]:
-                    second_plates.append(create_number_plate(
-                        plate_width, agg, diag[ot][agg]))
-                first_plate = html.Div(
-                    className='number-plate-single',
-                    style={'border-top': '#292929 solid .2rem', },
-                    children=[
-                        html.H5(
-                            style={'color': '#292929', },
-                            children=ot
-                        ),
-                        html.Div(
-                            style={'color': '#292929'},
-                            children=second_plates
-                        ),
-                    ]
-                )
-                first_plates.append(first_plate)
-
-            return html.Div(
-                className='number-plate-single',
-                style={'border-top': '#292929 solid .2rem', },
-                children=[
-                    html.H5(
-                        style={'color': '#292929', },
-                        children=title
-                    ),
-                    html.Div(
-                        style={'color': '#292929'},
-                        children=first_plates
-                    ),
-                ]
-            )
-
         plate_frames = [html.H3(f"Performance @ {selected}")]
-        if 'group_size_hist' in selected_diag:
-            plate_frames.append(create_2d_plate(
-                'Number of objects', selected_diag['group_size_hist']))
-            plate_frames.append(html.Br())
+        for diag_name in DIAGNOSTICS_VIS_NAME_MAP:
+            if 'time' in diag_name or 'Time' in diag_name:
+                time_measure = True
+            else:
+                time_measure = False
 
-        if 'waiting_time' in selected_diag:
-            plate_frames.append(create_2d_plate(
-                'Waiting Time', selected_diag['waiting_time']))
-            plate_frames.append(html.Br())
+            if diag_name in ['lagging_time', 'pooling_time']:
+                plate_frames.append(create_3d_plate(
+                    DIAGNOSTICS_VIS_NAME_MAP[diag_name], selected_diag[diag_name], time_measure))
+                plate_frames.append(html.Br())
+            else:
+                plate_frames.append(create_2d_plate(
+                    DIAGNOSTICS_VIS_NAME_MAP[diag_name], selected_diag[diag_name], time_measure))
+                plate_frames.append(html.Br())
 
-        if 'service_time' in selected_diag:
-            plate_frames.append(create_2d_plate(
-                'Service Time', selected_diag['service_time']))
-            plate_frames.append(html.Br())
+        # if 'waiting_time' in selected_diag:
+        #     plate_frames.append(create_2d_plate(
+        #         'Waiting Time', selected_diag['waiting_time']))
+        #     plate_frames.append(html.Br())
 
-        if 'sojourn_time' in selected_diag:
-            plate_frames.append(create_2d_plate(
-                'Sojourn Time', selected_diag['sojourn_time']))
-            plate_frames.append(html.Br())
+        # if 'service_time' in selected_diag:
+        #     plate_frames.append(create_2d_plate(
+        #         'Service Time', selected_diag['service_time']))
+        #     plate_frames.append(html.Br())
 
-        if 'synchronization_time' in selected_diag:
-            plate_frames.append(create_2d_plate(
-                'Synchronization Time', selected_diag['synchronization_time']))
-            plate_frames.append(html.Br())
+        # if 'sojourn_time' in selected_diag:
+        #     plate_frames.append(create_2d_plate(
+        #         'Sojourn Time', selected_diag['sojourn_time']))
+        #     plate_frames.append(html.Br())
 
-        if 'lagging_time' in selected_diag:
-            plate_frames.append(create_3d_plate(
-                'Lagging Time', selected_diag['lagging_time']))
-            plate_frames.append(html.Br())
+        # if 'synchronization_time' in selected_diag:
+        #     plate_frames.append(create_2d_plate(
+        #         'Synchronization Time', selected_diag['synchronization_time']))
+        #     plate_frames.append(html.Br())
 
-        if 'pooling_time' in selected_diag:
-            plate_frames.append(create_3d_plate(
-                'Pooling Time', selected_diag['pooling_time']))
-            plate_frames.append(html.Br())
+        # if 'lagging_time' in selected_diag:
+        #     plate_frames.append(create_3d_plate(
+        #         'Lagging Time', selected_diag['lagging_time']))
+        #     plate_frames.append(html.Br())
 
-        if 'flow_time' in selected_diag:
-            plate_frames.append(create_2d_plate(
-                'Flow Time', selected_diag['flow_time']))
-            plate_frames.append(html.Br())
+        # if 'pooling_time' in selected_diag:
+        #     plate_frames.append(create_3d_plate(
+        #         'Pooling Time', selected_diag['pooling_time']))
+        #     plate_frames.append(html.Br())
+
+        # if 'flow_time' in selected_diag:
+        #     plate_frames.append(create_2d_plate(
+        #         'Flow Time', selected_diag['flow_time']))
+        #     plate_frames.append(html.Br())
         return plate_frames
 
     else:
